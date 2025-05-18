@@ -102,3 +102,83 @@ Please file feedback and issues over on the [Supabase GitHub org](https://github
 - [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
 - [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
 - [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+
+# Sister Chat
+
+A platform for fashionistas to get feedback on their outfits from both AI and trusted friends.
+
+## Overview
+
+Sister Chat is a web application that allows users to:
+
+- Upload outfit photos
+- Receive immediate AI feedback on their outfits
+- Request and collect feedback from trusted friends (simulated in this demo)
+- View summarized feedback and style suggestions
+
+## Features
+
+- **Authentication**: Email/password authentication using Supabase Auth
+- **Image Upload**: Upload outfit images with notes to Supabase Storage
+- **AI Analysis**: Simulated AI feedback on outfit photos
+- **Friend Feedback**: Request and manage feedback from trusted friends (simulated)
+- **Subscription Management**: Freemium model with premium features available via Stripe subscription
+
+## Tech Stack
+
+- **Frontend**: Next.js 14 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: Next.js Route Handlers (running on Vercel)
+- **Database**: Supabase PostgreSQL
+- **Storage**: Supabase Storage
+- **Authentication**: Supabase Auth
+- **Payments**: Stripe (simulated in this demo)
+
+## Local Development
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Create a `.env.local` file with the following environment variables:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+   STRIPE_SECRET_KEY=your-stripe-secret-key
+   STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+   NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID=your-stripe-premium-price-id
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   ```
+4. Create the Supabase tables and functions using the SQL files:
+   - `supabase-schema.sql` - Creates the database tables and RLS policies
+   - `supabase-functions.sql` - Creates the database functions
+
+5. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000) to view the application
+
+## Project Structure
+
+- `app/` - Next.js application code
+  - `(auth-pages)/` - Authentication pages (sign-in, sign-up, forgot-password)
+  - `dashboard/` - User dashboard
+  - `upload/` - Outfit upload page
+  - `outfit/` - Outfit details page
+  - `settings/` - User settings (profile, integrations, subscription)
+  - `api/` - API routes
+- `components/` - Reusable React components
+- `utils/` - Utility functions
+- `lib/` - Shared libraries and helpers
+
+## Stripe Integration
+
+This demo includes simulated Stripe integration for subscription management. In a production environment, you would need to:
+
+1. Set up a Stripe account and create subscription products
+2. Configure webhook endpoints for subscription events
+3. Replace the simulated code with actual Stripe API calls
