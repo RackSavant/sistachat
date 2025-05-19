@@ -16,7 +16,7 @@ export default function Home() {
             <span className="text-primary block mt-2">From Your Circle</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10">
-            Sister Chat helps you get honest fashion advice from your trusted friends, enhanced by AI insights.
+            SavantSIS helps you get honest fashion advice from your trusted friends, enhanced by AI insights.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/sign-up">
@@ -53,7 +53,7 @@ export default function Home() {
             <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-6 text-xl font-bold">1</div>
             <h3 className="text-xl font-semibold mb-2">Upload Your Outfit</h3>
             <p className="text-muted-foreground">
-              Take a photo of your outfit and upload it to Sister Chat
+              Take a photo of your outfit and upload it to SavantSIS
             </p>
           </div>
           
@@ -154,7 +154,7 @@ export default function Home() {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Users Say</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of fashion enthusiasts already using Sister Chat
+            Join thousands of fashion enthusiasts already using SavantSIS
           </p>
         </div>
         
@@ -168,7 +168,7 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-500"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
             </div>
             <p className="mb-6">
-              "Sister Chat has revolutionized how I get feedback on my outfits. The combination of AI insights and my friends' opinions gives me confidence in my fashion choices."
+              "SavantSIS has revolutionized how I get feedback on my outfits. The combination of AI insights and my friends' opinions gives me confidence in my fashion choices."
             </p>
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-primary/20"></div>
@@ -188,7 +188,7 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-500"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
             </div>
             <p className="mb-6">
-              "I've always struggled with deciding what to wear. Sister Chat makes it easy to get feedback from my friends without the awkwardness of constantly asking them directly."
+              "I've always struggled with deciding what to wear. SavantSIS makes it easy to get feedback from my friends without the awkwardness of constantly asking them directly."
             </p>
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-primary/20"></div>
@@ -206,7 +206,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Elevate Your Fashion Game?</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Join Sister Chat today and start getting the feedback you need
+            Join SavantSIS today and start getting the feedback you need
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link href="/sign-up">
