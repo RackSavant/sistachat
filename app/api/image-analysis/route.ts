@@ -1,12 +1,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import openai from '@/lib/openai';
 
 // Mock AI image analysis service
-import OpenAI from '@/lib/openai';
 
 async function analyzeImage(imageUrl: string) {
   try {
-    const response = await OpenAI.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         {
@@ -47,15 +47,14 @@ async function analyzeImage(imageUrl: string) {
     throw new Error('Failed to analyze image');
   }
 }
-      `Try adding a ${outfitColors.includes('black') ? 'pop of color' : 'black accessory'} to complete the look`
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get('image') as File;
-    const outfitId = formData.get('outfitId') as string;
+    const file = formData.get('image') as File | null;
+    const outfitId = formData.get('outfitId') as string | null;
 
-    if (!file || !outfitId) {
+    if (!file || !outfitId || typeof outfitId !== 'string') {
       return NextResponse.json({ error: 'Image and outfitId are required' }, { status: 400 });
     }
 
