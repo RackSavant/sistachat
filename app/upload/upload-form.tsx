@@ -92,10 +92,10 @@ export default function UploadForm({ userId }: { userId: string }) {
       // Upload file to Supabase Storage
       const fileExt = file.name.split(".").pop();
       const fileName = `${userId}/${Date.now()}.${fileExt}`;
-      const filePath = `outfit-images/${fileName}`;
+      const filePath = `outfits/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("outfit-images")
+        .from("outfits")
         .upload(filePath, file);
 
       if (uploadError) {
@@ -104,7 +104,7 @@ export default function UploadForm({ userId }: { userId: string }) {
 
       // Get the public URL for the uploaded file
       const { data: publicUrlData } = supabase.storage
-        .from("outfit-images")
+        .from("outfits")
         .getPublicUrl(filePath);
 
       const imageUrl = publicUrlData.publicUrl;

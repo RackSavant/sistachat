@@ -2,131 +2,116 @@ import { createClient } from '@/utils/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Mock AI image analysis service
-function mockAIAnalysis(imageUrl: string) {
-  // In a real implementation, this would call an external AI service
-  // For now, return mock data with some randomization for variety
-  
-  const outfitTypes = [
-    'dress', 'blouse with jeans', 'sweater with skirt', 
-    'shirt with pants', 'jumpsuit', 'blazer with slacks'
-  ];
-  
-  const patterns = [
-    'floral', 'striped', 'solid color', 'polka dot', 
-    'checkered', 'geometric', 'plain'
-  ];
-  
-  const colors = [
-    'blue', 'red', 'green', 'yellow', 'purple', 
-    'pink', 'black', 'white', 'orange', 'teal'
-  ];
-  
-  const occasions = [
-    'casual outing', 'office work', 'formal event', 
-    'summer party', 'winter gathering', 'weekend brunch'
-  ];
-  
-  // Select random elements
-  const randomOutfit = outfitTypes[Math.floor(Math.random() * outfitTypes.length)];
-  const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
-  const randomColor1 = colors[Math.floor(Math.random() * colors.length)];
-  const randomColor2 = colors[Math.floor(Math.random() * colors.length)];
-  const randomOccasion = occasions[Math.floor(Math.random() * occasions.length)];
-  
-  // Create a unique set of colors (avoid duplicates)
-  const outfitColors = Array.from(new Set([randomColor1, randomColor2]));
-  
-  // Generate description
-  const description = `A stylish ${randomPattern} ${randomOutfit} in ${outfitColors.join(' and ')} tones, suitable for a ${randomOccasion}.`;
-  
-  // Return analysis as JSON
-  return {
-    description,
-    items: [randomOutfit.split(' ')[0], randomPattern],
-    colors: outfitColors,
-    occasion: randomOccasion,
-    style_score: Math.floor(Math.random() * 5) + 6, // Random score between 6-10
-    suggestions: [
-      `Consider accessorizing with ${randomColor1 === 'black' ? 'silver' : 'gold'} jewelry`,
-      `This would pair well with ${randomColor1 === 'white' ? 'colorful' : 'neutral'} shoes`,
-      `Try adding a ${outfitColors.includes('black') ? 'pop of color' : 'black accessory'} to complete the look`
-    ]
-  };
+import OpenAI from '@/lib/openai';
+
+async function analyzeImage(imageUrl: string) {
+  try {
+    const response = await OpenAI.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a fashion consultant with expertise in clothing analysis and styling. Provide detailed analysis of clothing items in images, focusing on style, fit, color coordination, and suitability for different occasions."
+        },
+        {
+          role: "user",
+          content: `Analyze the clothing in this image: ${imageUrl}. Provide a detailed analysis including:
+          1. Description of the outfit and its components
+          2. Color scheme and patterns
+          3. Style rating (1-10)
+          4. Occasion suitability
+          5. Styling suggestions
+          
+          Format your response as JSON with these fields:
+          {
+            "description": "Detailed outfit description",
+            "items": ["list", "of", "clothing", "items"],
+            "colors": ["list", "of", "colors"],
+            "occasion": "suitable occasion",
+            "style_score": number,
+            "suggestions": ["list", "of", "styling", "suggestions"]
+          }`
+        }
+      ],
+      temperature: 0.7,
+      response_format: {
+        type: "json_object"
+      }
+    });
+
+    // Parse the JSON response
+    const content = response.choices[0].message.content;
+    return JSON.parse(content);
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    throw new Error('Failed to analyze image');
+  }
 }
+      `Try adding a ${outfitColors.includes('black') ? 'pop of color' : 'black accessory'} to complete the look`
 
 export async function POST(request: NextRequest) {
   try {
-    // Get request body
-    const body = await request.json();
-    const { outfitId, imageUrl } = body;
-    
-    if (!outfitId && !imageUrl) {
-      return NextResponse.json(
-        { error: 'Either outfitId or imageUrl is required' },
-        { status: 400 }
-      );
+    const formData = await request.formData();
+    const file = formData.get('image') as File;
+    const outfitId = formData.get('outfitId') as string;
+
+    if (!file || !outfitId) {
+      return NextResponse.json({ error: 'Image and outfitId are required' }, { status: 400 });
     }
-    
+
+    // Create Supabase client
     const supabase = await createClient();
-    
-    let outfitImageUrl = imageUrl;
-    let outfit;
-    
-    // If outfitId is provided, fetch the outfit details from database
-    if (outfitId) {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .eq('id', outfitId)
-        .single();
-      
-      if (error) {
-        return NextResponse.json(
-          { error: 'Failed to fetch outfit details' },
-          { status: 500 }
-        );
-      }
-      
-      if (!data) {
-        return NextResponse.json(
-          { error: 'Outfit not found' },
-          { status: 404 }
-        );
-      }
-      
-      outfit = data;
-      outfitImageUrl = data.image_url;
+
+    // Upload file to Supabase storage
+    const { data: storageData, error: storageError } = await supabase
+      .storage
+      .from('outfits')
+      .upload(`outfit-${outfitId}/${file.name}`, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (storageError) {
+      console.error('Storage error:', storageError);
+      return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
     }
-    
-    // Call the AI service (mocked for now)
-    const analysis = mockAIAnalysis(outfitImageUrl);
-    
-    // If we have an outfitId, update the outfit record with the analysis
-    if (outfitId && outfit) {
-      const { error: updateError } = await supabase
-        .from('outfits')
-        .update({
-          initial_ai_analysis: analysis,
-          feedback_status: 'initial_ai_complete'
-        })
-        .eq('id', outfitId);
-      
-      if (updateError) {
-        return NextResponse.json(
-          { error: 'Failed to update outfit with analysis' },
-          { status: 500 }
-        );
-      }
+
+    // Get public URL for the uploaded file
+    const { data: publicUrlData } = await supabase.storage
+      .from('outfits')
+      .getPublicUrl(`outfit-${outfitId}/${file.name}`);
+
+    const publicUrl = publicUrlData.publicUrl;
+
+    // Analyze the image with OpenAI
+    const analysis = await analyzeImage(publicUrl);
+
+    // Store analysis in Supabase
+    const { error: insertError } = await supabase
+      .from('outfit_analysis')
+      .insert({
+        outfit_id: outfitId,
+        image_url: publicUrl,
+        description: analysis.description,
+        items: analysis.items,
+        colors: analysis.colors,
+        occasion: analysis.occasion,
+        style_score: analysis.style_score,
+        suggestions: analysis.suggestions
+      });
+
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 });
     }
-    
-    // Return the analysis
-    return NextResponse.json({ analysis });
-    
+
+    return NextResponse.json({
+      success: true,
+      analysis,
+      imageUrl: publicUrl
+    });
   } catch (error) {
-    console.error('Error in image analysis API:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error in image analysis:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

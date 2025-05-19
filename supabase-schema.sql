@@ -181,6 +181,15 @@ CREATE POLICY "Users can delete their own feedback threads"
 ON friend_feedback_threads FOR DELETE 
 USING (auth.uid() = user_id);
 
+-- Create policies for outfits bucket
+CREATE POLICY "authenticate_users_outfits_update" ON storage.objects 
+FOR UPDATE TO authenticated 
+USING (substring(name from '^outfits/([^/]+)')::uuid = auth.uid());
+
+CREATE POLICY "authenticate_users_outfits_insert" ON storage.objects 
+FOR INSERT TO authenticated 
+WITH CHECK (substring(name from '^outfits/([^/]+)')::uuid = auth.uid());
+
 -- Create Storage bucket for outfit images
 -- Note: This part needs to be done in the Supabase dashboard or via their API
 -- The SQL schema creation doesn't directly create storage buckets 
