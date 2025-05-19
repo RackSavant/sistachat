@@ -1,231 +1,193 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { useRouter } from "next/navigation";
-import { submitSimulatedFriendFeedback } from "@/app/actions";
-import { createClient } from "@/utils/supabase/client";
-import { useEffect } from "react";
+import { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { createClient } from '@/utils/supabase/client';
 
-interface FeedbackThread {
+interface FeedbackSolicitation {
   id: string;
-  contacted_friend_identifier_text: string;
-  simulated_friend_reply_text: string | null;
+  outfit_id: string;
+  friend_phone_number: string;
+  friend_name?: string;
   status: string;
+  friend_reply_text?: string;
+  solicited_at: string;
+  replied_at?: string;
 }
 
-interface FeedbackThreadsProps {
-  outfitId: string;
-  solicitationId: string;
-  feedbackStatus: string;
-  aggregatedFeedback: string | null;
-  derivedScore: string | null;
-}
-
-export default function FeedbackThreads({
-  outfitId,
-  solicitationId,
-  feedbackStatus,
-  aggregatedFeedback,
-  derivedScore,
-}: FeedbackThreadsProps) {
-  const [threads, setThreads] = useState<FeedbackThread[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [simulatedReplies, setSimulatedReplies] = useState<{
-    [key: string]: string;
-  }>({});
-  const [submitting, setSubmitting] = useState<{ [key: string]: boolean }>({});
+export default function FeedbackThreads({ outfitId }: { outfitId: string }) {
+  const [solicitations, setSolicitations] = useState<FeedbackSolicitation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const supabase = createClient();
-
-  // Fetch feedback threads
+  
   useEffect(() => {
-    const fetchThreads = async () => {
-      if (!solicitationId) return;
-
+    const fetchFeedback = async () => {
+      setIsLoading(true);
+      setError(null);
+      
       try {
+        const supabase = createClient();
+        
+        // Fetch solicitations
         const { data, error } = await supabase
-          .from("friend_feedback_threads")
-          .select("*")
-          .eq("solicitation_id", solicitationId)
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-        setThreads(data || []);
+          .from('sms_feedback_solicitations')
+          .select('*')
+          .eq('outfit_id', outfitId)
+          .order('solicited_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Get friend names if available
+        if (data) {
+          // Create a set of unique phone numbers
+          const phoneNumbers = [...new Set(data.map(s => s.friend_phone_number))];
+          
+          // Fetch friend names for these phone numbers
+          const { data: friends, error: friendsError } = await supabase
+            .from('user_trusted_friends')
+            .select('name, phone_number')
+            .in('phone_number', phoneNumbers);
+          
+          if (friendsError) {
+            console.error('Error fetching friend names:', friendsError);
+          }
+          
+          // Create a map of phone numbers to friend names
+          const friendsMap = new Map();
+          if (friends) {
+            friends.forEach(friend => {
+              friendsMap.set(friend.phone_number, friend.name);
+            });
+          }
+          
+          // Enhance the solicitations with friend names
+          const enhancedSolicitations = data.map(solicitation => ({
+            ...solicitation,
+            friend_name: friendsMap.get(solicitation.friend_phone_number)
+          }));
+          
+          setSolicitations(enhancedSolicitations);
+        }
       } catch (err) {
-        console.error("Error fetching threads:", err);
-        setError("Failed to load feedback threads");
+        console.error('Error fetching feedback:', err);
+        setError('Failed to load feedback');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
-    fetchThreads();
-  }, [solicitationId, supabase]);
-
-  const handleInputChange = (threadId: string, value: string) => {
-    setSimulatedReplies((prev) => ({
-      ...prev,
-      [threadId]: value,
-    }));
-  };
-
-  const handleSubmitFeedback = async (threadId: string) => {
-    const reply = simulatedReplies[threadId];
-    if (!reply) return;
-
-    setSubmitting((prev) => ({ ...prev, [threadId]: true }));
-    setError(null);
-
-    try {
-      const result = await submitSimulatedFriendFeedback({
-        threadId,
-        replyText: reply,
-      });
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      // Update local state to reflect the change
-      setThreads((prev) =>
-        prev.map((thread) =>
-          thread.id === threadId
-            ? { ...thread, simulated_friend_reply_text: reply, status: "reply_received_simulated" }
-            : thread
+    
+    fetchFeedback();
+    
+    // Set up real-time subscription for updates
+    const setupSubscription = async () => {
+      const supabase = createClient();
+      
+      const subscription = supabase
+        .channel('sms_feedback_updates')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'sms_feedback_solicitations',
+            filter: `outfit_id=eq.${outfitId}`
+          }, 
+          () => {
+            // Refresh the data when we get an update
+            fetchFeedback();
+          }
         )
-      );
-
-      // Clear the input
-      setSimulatedReplies((prev) => {
-        const newState = { ...prev };
-        delete newState[threadId];
-        return newState;
-      });
-
-      // Refresh the page if all threads now have replies
-      const allThreadsHaveReplies = threads.every(
-        (thread) => thread.id === threadId ? true : thread.simulated_friend_reply_text
-      );
-
-      if (allThreadsHaveReplies) {
-        router.refresh();
+        .subscribe();
+      
+      // Return cleanup function
+      return () => {
+        subscription.unsubscribe();
+      };
+    };
+    
+    const cleanup = setupSubscription();
+    return () => {
+      if (cleanup) {
+        cleanup.then((unsub) => unsub());
       }
-    } catch (err) {
-      console.error("Error submitting feedback:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to submit feedback"
-      );
-    } finally {
-      setSubmitting((prev) => ({ ...prev, [threadId]: false }));
+    };
+  }, [outfitId]);
+  
+  // Format phone number for display
+  const formatPhoneForDisplay = (phone: string) => {
+    // Simple formatter - in production you'd want something more robust
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    } else if (digits.length === 11 && digits.startsWith('1')) {
+      return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
     }
+    return phone; // Return as is if we can't format it
   };
-
-  if (loading) {
-    return (
-      <div className="py-8 text-center">
-        <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-muted-foreground">Loading feedback...</p>
-      </div>
-    );
-  }
-
-  if (!solicitationId || threads.length === 0) {
-    return (
-      <div className="py-6 text-center">
-        <p className="text-muted-foreground">
-          No feedback has been requested yet.
-        </p>
-      </div>
-    );
-  }
-
-  // If feedback is complete, show the summary
-  if (feedbackStatus === "friend_feedback_complete") {
-    return (
-      <div className="space-y-6">
-        {aggregatedFeedback && (
-          <div>
-            <h3 className="text-md font-medium mb-2">Friend Feedback Summary</h3>
-            <p>{aggregatedFeedback}</p>
+  
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-xl">Friend Feedback</CardTitle>
+        <Badge>
+          {solicitations.filter(s => s.status === 'reply_received').length} / {solicitations.length} Replies
+        </Badge>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="py-8 text-center">
+            <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-muted-foreground">
+              Loading feedback...
+            </p>
           </div>
-        )}
-
-        {derivedScore && (
-          <div>
-            <h3 className="text-md font-medium mb-2">Overall Assessment</h3>
-            <p>{derivedScore}</p>
+        ) : error ? (
+          <div className="py-6 text-center">
+            <p className="text-red-600">{error}</p>
           </div>
-        )}
-
-        <div>
-          <h3 className="text-md font-medium mb-4">Individual Feedback</h3>
-          <div className="space-y-4">
-            {threads.map((thread) => (
-              <Card key={thread.id}>
-                <CardContent className="p-4">
-                  <p className="font-medium mb-1">
-                    {thread.contacted_friend_identifier_text}
-                  </p>
-                  <p className="text-sm">{thread.simulated_friend_reply_text}</p>
-                </CardContent>
-              </Card>
+        ) : solicitations.length === 0 ? (
+          <div className="py-6 text-center">
+            <p className="text-muted-foreground">
+              No feedback requests sent yet.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {solicitations.map((solicitation) => (
+              <div key={solicitation.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-medium">
+                      {solicitation.friend_name || formatPhoneForDisplay(solicitation.friend_phone_number)}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Sent {new Date(solicitation.solicited_at).toLocaleDateString()} at{' '}
+                      {new Date(solicitation.solicited_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                  <Badge variant={solicitation.status === 'reply_received' ? 'default' : 'secondary'}>
+                    {solicitation.status === 'reply_received' ? 'Replied' : 'Awaiting Reply'}
+                  </Badge>
+                </div>
+                
+                {solicitation.status === 'reply_received' && solicitation.friend_reply_text && (
+                  <div className="bg-gray-50 rounded p-3 mt-2">
+                    <p className="text-gray-800">{solicitation.friend_reply_text}</p>
+                    {solicitation.replied_at && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Replied on {new Date(solicitation.replied_at).toLocaleDateString()} at{' '}
+                        {new Date(solicitation.replied_at).toLocaleTimeString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Otherwise, show the threads with input for simulation
-  return (
-    <div className="space-y-6">
-      <p className="text-muted-foreground mb-4">
-        Feedback has been requested from your friends. For this demo, you can
-        simulate their responses below.
-      </p>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <div className="space-y-4">
-        {threads.map((thread) => (
-          <Card key={thread.id}>
-            <CardContent className="p-4">
-              <p className="font-medium mb-3">
-                {thread.contacted_friend_identifier_text}
-              </p>
-
-              {thread.simulated_friend_reply_text ? (
-                <p className="text-sm">{thread.simulated_friend_reply_text}</p>
-              ) : (
-                <div className="space-y-3">
-                  <Textarea
-                    placeholder="Enter simulated feedback from this friend..."
-                    value={simulatedReplies[thread.id] || ""}
-                    onChange={(e) =>
-                      handleInputChange(thread.id, e.target.value)
-                    }
-                  />
-                  <Button
-                    onClick={() => handleSubmitFeedback(thread.id)}
-                    disabled={
-                      !simulatedReplies[thread.id] || submitting[thread.id]
-                    }
-                    size="sm"
-                  >
-                    {submitting[thread.id]
-                      ? "Submitting..."
-                      : "Submit Simulated Reply"}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 } 

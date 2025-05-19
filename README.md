@@ -182,3 +182,24 @@ This demo includes simulated Stripe integration for subscription management. In 
 1. Set up a Stripe account and create subscription products
 2. Configure webhook endpoints for subscription events
 3. Replace the simulated code with actual Stripe API calls
+
+## Supabase Storage Setup
+
+The application uses Supabase Storage for storing outfit images. Follow these steps to set up the required storage buckets:
+
+1. Set the required environment variables:
+   - Copy `.env.example` to `.env.local` if not done already
+   - Ensure `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set
+
+2. Run the bucket creation script:
+   ```bash
+   npx tsx utils/supabase/create-buckets.ts
+   ```
+
+3. Set up storage policies in Supabase Dashboard:
+   - Navigate to your Supabase project > Storage > Policies
+   - Create policies for the "outfits" bucket:
+     - Policy for users to access only their files: `storage.foldername(1)::uuid = auth.uid()`
+     - Add separate read/write policies as needed
+
+This sets up the required "outfits" bucket with appropriate file size limits (5MB) and allowed file types (JPEG, PNG, WEBP).

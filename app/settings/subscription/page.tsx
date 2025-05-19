@@ -1,239 +1,283 @@
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import StripePortalButton from "./stripe-portal-button";
+'use client';
 
-export const metadata = {
-  title: "Subscription Settings - Sister Chat",
-  description: "Manage your subscription and plan settings",
-};
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
 
-export default async function SubscriptionSettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+interface Subscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: string;
+  current_period_start: string;
+  current_period_end: string;
+  stripe_subscription_id: string;
+  stripe_customer_id: string;
+}
 
-  if (!user) {
-    return redirect("/sign-in");
-  }
+interface UsageQuota {
+  id: string;
+  user_id: string;
+  month_year_key: string;
+  images_uploaded_count: number;
+  feedback_flows_initiated_count: number;
+}
 
-  // Fetch user's subscription
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  // Get user's usage quotas
-  const currentDate = new Date();
-  const monthYearKey = `${currentDate.getFullYear()}-${String(
-    currentDate.getMonth() + 1
-  ).padStart(2, "0")}`;
-
-  const { data: usageQuota } = await supabase
-    .from("user_usage_quotas")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("month_year_key", monthYearKey)
-    .single();
-
-  const isPremium = subscription?.plan_id?.includes("premium");
-  const planLimits = {
-    images: isPremium ? 100 : 3,
-    feedbackRequests: isPremium ? 20 : 0,
+export default function SubscriptionPage() {
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [usageQuota, setUsageQuota] = useState<UsageQuota | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    fetchSubscriptionData();
+  }, []);
+  
+  const fetchSubscriptionData = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const supabase = createClient();
+      
+      // Fetch subscription data
+      const { data: subData, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .single();
+      
+      if (subError && subError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is expected for free users
+        throw subError;
+      }
+      
+      if (subData) {
+        setSubscription(subData);
+      }
+      
+      // Fetch usage quota
+      const currentDate = new Date();
+      const monthYearKey = `${currentDate.getFullYear()}-${String(
+        currentDate.getMonth() + 1
+      ).padStart(2, '0')}`;
+      
+      const { data: usageData, error: usageError } = await supabase
+        .from('user_usage_quotas')
+        .select('*')
+        .eq('month_year_key', monthYearKey)
+        .single();
+      
+      if (usageError && usageError.code !== 'PGRST116') {
+        throw usageError;
+      }
+      
+      if (usageData) {
+        setUsageQuota(usageData);
+      }
+      
+    } catch (err) {
+      console.error('Error fetching subscription data:', err);
+      setError('Failed to load subscription information. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
-
+  
+  // Determine if the user has an active premium subscription
+  const isPremium = subscription?.status === 'active' && 
+                    subscription?.plan_id?.includes('premium');
+  
+  // Calculate limits based on subscription tier
+  const imageUploadLimit = isPremium ? 100 : 3;
+  const feedbackFlowsLimit = isPremium ? 50 : 0;
+  
+  // Calculate usage percentages
+  const imageUploadPercentage = usageQuota 
+    ? Math.min(100, (usageQuota.images_uploaded_count / imageUploadLimit) * 100) 
+    : 0;
+    
+  const feedbackFlowsPercentage = usageQuota && feedbackFlowsLimit > 0
+    ? Math.min(100, (usageQuota.feedback_flows_initiated_count / feedbackFlowsLimit) * 100)
+    : 0;
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString(undefined, { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+  
   return (
-    <>
-      <h2 className="text-2xl font-bold mb-6">Subscription Settings</h2>
-
-      <div className="space-y-8">
-        {/* Current Plan */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Plan</CardTitle>
-            <CardDescription>Your subscription plan and renewal details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="container max-w-4xl mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-8">Subscription Management</h1>
+      
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+          {error}
+        </div>
+      )}
+      
+      {isLoading ? (
+        <div className="py-12 text-center">
+          <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-muted-foreground">
+            Loading subscription information...
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Current Plan */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold">
-                    {isPremium ? "Premium Plan" : "Free Tier"}
-                  </h3>
-                  {isPremium && subscription?.current_period_end && (
-                    <p className="text-sm text-muted-foreground">
-                      Renews on{" "}
-                      {new Date(subscription.current_period_end).toLocaleDateString()}
-                    </p>
-                  )}
+                  <CardTitle className="text-xl">Current Plan</CardTitle>
+                  <CardDescription>
+                    Your current subscription plan and status
+                  </CardDescription>
                 </div>
-
-                {isPremium ? (
-                  <StripePortalButton stripeCustomerId={subscription?.stripe_subscription_id} />
+                <Badge className={isPremium ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}>
+                  {isPremium ? 'Premium' : 'Free Tier'}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {subscription ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <p className="text-sm font-medium">Status:</p>
+                      <p className="text-sm capitalize">{subscription.status}</p>
+                      
+                      <p className="text-sm font-medium">Current Period:</p>
+                      <p className="text-sm">
+                        {formatDate(subscription.current_period_start)} to {formatDate(subscription.current_period_end)}
+                      </p>
+                      
+                      <p className="text-sm font-medium">Plan ID:</p>
+                      <p className="text-sm">{subscription.plan_id}</p>
+                    </div>
+                  </div>
                 ) : (
-                  <Link href="/pricing">
-                    <Button>Upgrade to Premium</Button>
-                  </Link>
+                  <p>You are currently on the free tier.</p>
                 )}
-              </div>
-
-              {isPremium && subscription?.cancel_at_period_end && (
-                <div className="p-3 bg-amber-500/10 text-amber-600 rounded-md">
-                  Your subscription will not renew at the end of your current billing period.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Usage */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Usage Statistics</CardTitle>
-            <CardDescription>Your current month's usage</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Outfit Uploads</span>
-                  <span className="text-sm">
-                    {usageQuota?.images_uploaded_this_period || 0} /{" "}
-                    {planLimits.images}
-                  </span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        ((usageQuota?.images_uploaded_this_period || 0) /
-                          planLimits.images) *
-                          100
-                      )}%`,
-                    }}
-                  ></div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium">Image Uploads</span>
+                        <span className="text-sm">
+                          {usageQuota?.images_uploaded_count || 0} / {imageUploadLimit}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-primary h-2.5 rounded-full" 
+                          style={{ width: `${imageUploadPercentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium">Feedback Requests</span>
+                        <span className="text-sm">
+                          {usageQuota?.feedback_flows_initiated_count || 0} / {feedbackFlowsLimit}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className={`h-2.5 rounded-full ${feedbackFlowsLimit > 0 ? 'bg-primary' : 'bg-gray-400'}`}
+                          style={{ width: `${feedbackFlowsPercentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Friend Feedback Requests</span>
-                  <span className="text-sm">
-                    {usageQuota?.feedback_flows_initiated_this_period || 0} /{" "}
-                    {planLimits.feedbackRequests}
-                  </span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        ((usageQuota?.feedback_flows_initiated_this_period || 0) /
-                          (planLimits.feedbackRequests || 1)) *
-                          100
-                      )}%`,
-                    }}
-                  ></div>
-                </div>
-                {!isPremium && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Upgrade to Premium to access friend feedback features
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Plan Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Plan Details</CardTitle>
-            <CardDescription>Features included in your plan</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              <li className="flex items-start gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-primary flex-shrink-0 mt-0.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span>
-                  <strong>AI Analysis:</strong>{" "}
-                  {isPremium ? "Enhanced AI analysis with detailed suggestions" : "Basic AI analysis"}
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-primary flex-shrink-0 mt-0.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span>
-                  <strong>Uploads:</strong> {planLimits.images} outfit uploads per month
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`h-5 w-5 ${
-                    isPremium ? "text-primary" : "text-muted-foreground"
-                  } flex-shrink-0 mt-0.5`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {isPremium ? (
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  ) : (
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                  )}
-                  {!isPremium && <line x1="6" y1="6" x2="18" y2="18"></line>}
-                </svg>
-                <span className={!isPremium ? "text-muted-foreground" : ""}>
-                  <strong>Friend Feedback:</strong>{" "}
-                  {isPremium
-                    ? `${planLimits.feedbackRequests} friend feedback requests per month`
-                    : "Not included"}
-                </span>
-              </li>
-            </ul>
-
-            {!isPremium && (
-              <div className="mt-6">
-                <Link href="/pricing">
-                  <Button variant="outline" className="w-full">See Premium Benefits</Button>
+            </CardContent>
+            <CardFooter className="flex flex-col sm:flex-row gap-3">
+              {!isPremium ? (
+                <Link href="/pricing" className="w-full sm:w-auto">
+                  <Button className="w-full">Upgrade to Premium</Button>
                 </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </>
+              ) : (
+                <Button className="w-full sm:w-auto" disabled>
+                  Manage Subscription
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+          
+          {/* Plan Comparison */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className={!isPremium ? 'bg-card border-primary/50' : ''}>
+              <CardHeader>
+                <CardTitle>Free Tier</CardTitle>
+                <CardDescription>Basic features for getting started</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold mb-6">$0 <span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                <ul className="space-y-2">
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>3 outfit uploads per month</span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>AI feedback on all uploads</span>
+                  </li>
+                  <li className="flex items-center text-gray-400">
+                    <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <span>No SMS feedback requests</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card className={isPremium ? 'border-primary bg-primary/5' : ''}>
+              <CardHeader>
+                <CardTitle>Premium</CardTitle>
+                <CardDescription>Advanced features for fashion enthusiasts</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold mb-6">$20 <span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                <ul className="space-y-2">
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>100 outfit uploads per month</span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Advanced AI feedback on all uploads</span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>50 SMS feedback requests per month</span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Priority support</span>
+                  </li>
+                </ul>
+              </CardContent>
+              {!isPremium && (
+                <CardFooter>
+                  <Link href="/pricing" className="w-full">
+                    <Button className="w-full">Upgrade Now</Button>
+                  </Link>
+                </CardFooter>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
+    </div>
   );
 } 
