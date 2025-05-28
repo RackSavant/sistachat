@@ -1,6 +1,41 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Create profiles table (extends auth.users)
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    display_name TEXT,
+    avatar_url TEXT,
+    bio TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create chats table
+CREATE TABLE IF NOT EXISTS chats (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create messages table
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    message_type TEXT NOT NULL DEFAULT 'text', -- 'text', 'image', 'system'
+    image_url TEXT,
+    raw_image_url TEXT,
+    processed_image_url TEXT,
+    storage_object_path TEXT,
+    ai_feedback TEXT,
+    shopping_suggestions JSONB,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Create subscriptions table
 CREATE TABLE IF NOT EXISTS subscriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -15,11 +50,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Create index on user_id for subscriptions
-CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
-
 -- Create user_usage_quotas table
 CREATE TABLE IF NOT EXISTS user_usage_quotas (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -32,7 +62,7 @@ CREATE TABLE IF NOT EXISTS user_usage_quotas (
     PRIMARY KEY (user_id, month_year_key)
 );
 
--- Create outfits table
+-- Create outfits table (keeping for backward compatibility)
 CREATE TABLE IF NOT EXISTS outfits (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -47,9 +77,6 @@ CREATE TABLE IF NOT EXISTS outfits (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Create index on user_id for outfits
-CREATE INDEX IF NOT EXISTS idx_outfits_user_id ON outfits(user_id);
-
 -- Create feedback_solicitations table
 CREATE TABLE IF NOT EXISTS feedback_solicitations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -60,10 +87,6 @@ CREATE TABLE IF NOT EXISTS feedback_solicitations (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Create indices for feedback_solicitations
-CREATE INDEX IF NOT EXISTS idx_feedback_solicitations_outfit_id ON feedback_solicitations(outfit_id);
-CREATE INDEX IF NOT EXISTS idx_feedback_solicitations_user_id ON feedback_solicitations(user_id);
-
 -- Create user_trusted_friends table
 CREATE TABLE IF NOT EXISTS user_trusted_friends (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -73,9 +96,6 @@ CREATE TABLE IF NOT EXISTS user_trusted_friends (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
-
--- Create index on user_id for user_trusted_friends
-CREATE INDEX IF NOT EXISTS idx_user_trusted_friends_user_id ON user_trusted_friends(user_id);
 
 -- Create friend_feedback_threads table
 CREATE TABLE IF NOT EXISTS friend_feedback_threads (
@@ -90,18 +110,77 @@ CREATE TABLE IF NOT EXISTS friend_feedback_threads (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Create index on solicitation_id for friend_feedback_threads
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_profiles_id ON profiles(id);
+CREATE INDEX IF NOT EXISTS idx_chats_user_id ON chats(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
+CREATE INDEX IF NOT EXISTS idx_messages_user_id ON messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_outfits_user_id ON outfits(user_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_solicitations_outfit_id ON feedback_solicitations(outfit_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_solicitations_user_id ON feedback_solicitations(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_trusted_friends_user_id ON user_trusted_friends(user_id);
 CREATE INDEX IF NOT EXISTS idx_friend_feedback_threads_solicitation_id ON friend_feedback_threads(solicitation_id);
 
--- Row Level Security Policies
-
--- Enable RLS
+-- Enable Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_usage_quotas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE outfits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback_solicitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_trusted_friends ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friend_feedback_threads ENABLE ROW LEVEL SECURITY;
+
+-- Profiles policies
+CREATE POLICY "Users can view their own profile" 
+ON profiles FOR SELECT 
+USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" 
+ON profiles FOR UPDATE 
+USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile" 
+ON profiles FOR INSERT 
+WITH CHECK (auth.uid() = id);
+
+-- Chats policies
+CREATE POLICY "Users can view their own chats" 
+ON chats FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own chats" 
+ON chats FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own chats" 
+ON chats FOR UPDATE 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own chats" 
+ON chats FOR DELETE 
+USING (auth.uid() = user_id);
+
+-- Messages policies
+CREATE POLICY "Users can view messages in their chats" 
+ON messages FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create messages in their chats" 
+ON messages FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own messages" 
+ON messages FOR UPDATE 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own messages" 
+ON messages FOR DELETE 
+USING (auth.uid() = user_id);
 
 -- Subscriptions policies
 CREATE POLICY "Users can view their own subscriptions" 
@@ -181,7 +260,7 @@ CREATE POLICY "Users can delete their own feedback threads"
 ON friend_feedback_threads FOR DELETE 
 USING (auth.uid() = user_id);
 
--- Create policies for outfits bucket
+-- Storage policies for outfit images
 CREATE POLICY "authenticate_users_outfits_update" ON storage.objects 
 FOR UPDATE TO authenticated 
 USING (substring(name from '^outfits/([^/]+)')::uuid = auth.uid());
@@ -190,6 +269,20 @@ CREATE POLICY "authenticate_users_outfits_insert" ON storage.objects
 FOR INSERT TO authenticated 
 WITH CHECK (substring(name from '^outfits/([^/]+)')::uuid = auth.uid());
 
--- Create Storage bucket for outfit images
--- Note: This part needs to be done in the Supabase dashboard or via their API
--- The SQL schema creation doesn't directly create storage buckets 
+-- Storage policies for raw images
+CREATE POLICY "authenticate_users_raw_images_update" ON storage.objects 
+FOR UPDATE TO authenticated 
+USING (substring(name from '^raw-images/([^/]+)')::uuid = auth.uid());
+
+CREATE POLICY "authenticate_users_raw_images_insert" ON storage.objects 
+FOR INSERT TO authenticated 
+WITH CHECK (substring(name from '^raw-images/([^/]+)')::uuid = auth.uid());
+
+-- Storage policies for processed images
+CREATE POLICY "authenticate_users_processed_images_update" ON storage.objects 
+FOR UPDATE TO authenticated 
+USING (substring(name from '^processed-images/([^/]+)')::uuid = auth.uid());
+
+CREATE POLICY "authenticate_users_processed_images_insert" ON storage.objects 
+FOR INSERT TO authenticated 
+WITH CHECK (substring(name from '^processed-images/([^/]+)')::uuid = auth.uid()); 
