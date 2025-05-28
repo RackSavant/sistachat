@@ -12,7 +12,7 @@ import AIFeedbackSection from './ai-feedback-section';
 export const generateMetadata = async ({
   params,
 }: {
-  params: { outfitId: string };
+  params: Promise<{ outfitId: string }>;
 }): Promise<Metadata> => {
   return {
     title: "Outfit Details - Sister Chat",
@@ -41,8 +41,9 @@ interface Outfit {
 export default async function OutfitPage({
   params,
 }: {
-  params: { outfitId: string };
+  params: Promise<{ outfitId: string }>;
 }) {
+  const resolvedParams = await params;
   const supabase = await createClient();
   
   // Get the current user
@@ -56,7 +57,7 @@ export default async function OutfitPage({
   const { data: outfit, error } = await supabase
     .from('outfits')
     .select('*')
-    .eq('id', params.outfitId)
+    .eq('id', resolvedParams.outfitId)
     .eq('user_id', user.id)
     .single();
   
@@ -100,12 +101,12 @@ export default async function OutfitPage({
           
           {/* Friend Feedback Request Button */}
           {outfit.feedback_status === 'initial_ai_complete' && (
-            <FeedbackRequestButton outfitId={params.outfitId} />
+            <FeedbackRequestButton outfitId={resolvedParams.outfitId} />
           )}
           
           {/* Friend Feedback Display */}
           {outfit.feedback_status === 'awaiting_friend_feedback' && (
-            <FeedbackThreads outfitId={params.outfitId} />
+            <FeedbackThreads outfitId={resolvedParams.outfitId} />
           )}
         </div>
       </div>

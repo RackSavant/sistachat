@@ -41,6 +41,9 @@ async function analyzeImage(imageUrl: string) {
 
     // Parse the JSON response
     const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error('No content received from OpenAI');
+    }
     return JSON.parse(content);
   } catch (error) {
     console.error('Error analyzing image:', error);

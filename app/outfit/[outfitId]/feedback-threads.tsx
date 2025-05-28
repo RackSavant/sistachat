@@ -43,7 +43,7 @@ export default function FeedbackThreads({ outfitId }: { outfitId: string }) {
         // Get friend names if available
         if (data) {
           // Create a set of unique phone numbers
-          const phoneNumbers = [...new Set(data.map(s => s.friend_phone_number))];
+          const phoneNumbers = Array.from(new Set(data.map(s => s.friend_phone_number)));
           
           // Fetch friend names for these phone numbers
           const { data: friends, error: friendsError } = await supabase
