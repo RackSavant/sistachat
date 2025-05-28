@@ -13,10 +13,9 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    // Temporarily allow testing without authentication
-    // if (userError || !user) {
-    //   return new Response('Unauthorized', { status: 401 });
-    // }
+    if (userError || !user) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
     const result = streamText({
       model: openai('gpt-4.1-nano'),
