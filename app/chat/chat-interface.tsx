@@ -31,6 +31,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
@@ -79,6 +80,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
     if (!inputText.trim()) return;
 
     setIsLoading(true);
+    setIsTyping(true);
     try {
       await sendTextMessage(inputText);
       setInputText('');
@@ -86,6 +88,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
       console.error('Error sending message:', error);
     } finally {
       setIsLoading(false);
+      setIsTyping(false);
     }
   };
 
@@ -114,6 +117,9 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
     };
 
     setMessages(prev => [...prev, userMessage]);
+
+    // Simulate typing delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Generate AI response
     const aiResponse = await generateAIResponse(content);
@@ -263,33 +269,37 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] max-w-4xl mx-auto w-full bg-gradient-to-b from-pink-50/30 to-purple-50/30 dark:from-pink-900/10 dark:to-purple-900/10 rounded-xl border border-pink-200/50 dark:border-purple-500/20 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-200px)] max-w-4xl mx-auto w-full glass rounded-xl overflow-hidden animate-scale-in">
       {/* Chat Header */}
-      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-          <span className="text-lg">👗</span>
+      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center gap-3 animate-gradient">
+        <div className="w-10 h-10 glass rounded-full flex items-center justify-center animate-glow">
+          <span className="text-lg animate-wiggle">👗</span>
         </div>
         <div>
           <h2 className="font-semibold">Your AI Fashion Sister</h2>
-          <p className="text-sm opacity-90">Always here to keep it 💯 about your style</p>
+          <p className="text-sm opacity-90 animate-float">Always here to keep it 💯 about your style</p>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">✨👗💅</div>
-            <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="text-center py-12 animate-fade-in">
+            <div className="text-6xl mb-4">
+              <span className="animate-bounce-slow">✨</span>
+              <span className="animate-wiggle">👗</span>
+              <span className="animate-float">💅</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2 gradient-text animate-glow">
               Hey babe! Ready for some real talk?
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto">
+            <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto animate-slide-up">
               Drop your outfit pics or just start chatting about your style goals! Your AI sister is here to help you serve looks ✨
             </p>
             <div className="flex gap-4 justify-center">
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 btn-interactive hover-lift animate-glow"
               >
                 <ImageIcon className="w-4 h-4" />
                 Upload Your Fit 📸
@@ -297,17 +307,40 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
             </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))
+          <>
+            {messages.map((message) => (
+              <MessageBubble key={message.id} message={message} />
+            ))}
+            {isTyping && (
+              <div className="flex justify-start animate-fade-in">
+                <div className="max-w-[80%]">
+                  <div className="flex items-center gap-2 mb-2 ml-2">
+                    <div className="w-6 h-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-glow">
+                      <span className="text-white text-xs">👗</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Your AI Sister</span>
+                  </div>
+                  <Card className="glass shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="typing-indicator">
+                        <div className="typing-dot"></div>
+                        <div className="typing-dot"></div>
+                        <div className="typing-dot"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-pink-200/50 dark:border-purple-500/20 p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
+      <div className="glass p-4">
         <div
-          className={`relative ${dragActive ? 'bg-pink-100/50 dark:bg-pink-900/20 border-2 border-dashed border-pink-400' : ''} rounded-lg`}
+          className={`relative ${dragActive ? 'glass-pink border-2 border-dashed border-pink-400 animate-glow' : ''} rounded-lg`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -319,7 +352,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Tell me about your outfit or style goals, babe... ✨"
-                className="min-h-[60px] resize-none border-pink-200 dark:border-purple-500/30 focus:border-pink-400 dark:focus:border-purple-400"
+                className="min-h-[60px] resize-none glass border-none focus:ring-2 focus:ring-pink-400"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -334,7 +367,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
                 variant="outline"
                 size="icon"
                 disabled={isLoading}
-                className="border-pink-300 text-pink-600 hover:bg-pink-50 dark:border-pink-400 dark:text-pink-400 dark:hover:bg-pink-900/20"
+                className="glass-pink hover-lift btn-interactive"
               >
                 <Upload className="w-4 h-4" />
               </Button>
@@ -342,7 +375,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
                 onClick={handleSendMessage}
                 disabled={isLoading || !inputText.trim()}
                 size="icon"
-                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 btn-interactive hover-lift animate-glow"
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -350,9 +383,9 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
           </div>
           
           {dragActive && (
-            <div className="absolute inset-0 flex items-center justify-center bg-pink-100/80 dark:bg-pink-900/40 rounded-lg">
+            <div className="absolute inset-0 flex items-center justify-center glass-pink rounded-lg animate-pulse">
               <div className="text-center">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-pink-600" />
+                <Upload className="w-8 h-8 mx-auto mb-2 text-pink-600 animate-bounce" />
                 <p className="font-medium text-pink-700 dark:text-pink-300">Drop your outfit pic here, girl! 📸</p>
               </div>
             </div>
@@ -373,11 +406,11 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
 
 function MessageBubble({ message }: { message: Message }) {
   return (
-    <div className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} message-bubble ${message.isUser ? 'user' : 'ai'}`}>
       <div className={`max-w-[80%] ${message.isUser ? 'order-2' : 'order-1'}`}>
         {!message.isUser && (
-          <div className="flex items-center gap-2 mb-2 ml-2">
-            <div className="w-6 h-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="flex items-center gap-2 mb-2 ml-2 animate-slide-up">
+            <div className="w-6 h-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-glow">
               <span className="text-white text-xs">👗</span>
             </div>
             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Your AI Sister</span>
@@ -386,22 +419,22 @@ function MessageBubble({ message }: { message: Message }) {
         
         <Card className={`${
           message.isUser 
-            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-none' 
-            : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-pink-200/50 dark:border-purple-500/20'
-        } shadow-sm`}>
+            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-none animate-glow' 
+            : 'glass hover-lift'
+        } shadow-sm hover-glow`}>
           <CardContent className="p-4">
             {message.message_type === 'image' && message.image_url && (
-              <div className="mb-3">
+              <div className="mb-3 animate-scale-in">
                 <div className="relative w-full max-w-sm mx-auto">
                   <Image
                     src={message.image_url}
                     alt="Outfit"
                     width={300}
                     height={400}
-                    className="rounded-lg object-cover border-2 border-white/20"
+                    className="rounded-lg object-cover border-2 border-white/20 hover-lift"
                   />
                   {message.processed_image_url && (
-                    <div className="mt-2 text-xs text-pink-200">
+                    <div className="mt-2 text-xs text-pink-200 animate-shimmer">
                       ✨ Enhanced version available
                     </div>
                   )}
@@ -412,9 +445,9 @@ function MessageBubble({ message }: { message: Message }) {
             <p className="text-sm leading-relaxed">{message.content}</p>
             
             {message.ai_feedback && (
-              <div className="mt-3 p-3 bg-gradient-to-r from-pink-100/50 to-purple-100/50 dark:from-pink-900/20 dark:to-purple-900/20 rounded-lg border border-pink-200/30 dark:border-purple-500/20">
+              <div className="mt-3 p-3 glass-pink rounded-lg animate-slide-up">
                 <div className="flex items-center gap-2 mb-2">
-                  <Heart className="w-4 h-4 text-pink-500" />
+                  <Heart className="w-4 h-4 text-pink-500 animate-pulse" />
                   <span className="font-medium text-sm text-pink-700 dark:text-pink-300">Sister's Real Talk:</span>
                 </div>
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{message.ai_feedback}</p>
@@ -422,14 +455,14 @@ function MessageBubble({ message }: { message: Message }) {
             )}
             
             {message.shopping_suggestions && message.shopping_suggestions.length > 0 && (
-              <div className="mt-3 p-3 bg-gradient-to-r from-purple-100/50 to-pink-100/50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200/30 dark:border-pink-500/20">
+              <div className="mt-3 p-3 glass-purple rounded-lg animate-slide-up">
                 <div className="flex items-center gap-2 mb-2">
-                  <ShoppingBag className="w-4 h-4 text-purple-500" />
+                  <ShoppingBag className="w-4 h-4 text-purple-500 animate-bounce" />
                   <span className="font-medium text-sm text-purple-700 dark:text-purple-300">Similar Vibes:</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {message.shopping_suggestions.slice(0, 4).map((item: any, index: number) => (
-                    <div key={index} className="text-xs p-2 bg-white/60 dark:bg-gray-800/60 rounded border border-white/40">
+                    <div key={index} className="text-xs p-2 glass rounded border border-white/40 hover-lift">
                       <div className="font-medium text-gray-800 dark:text-gray-200">{item.name}</div>
                       <div className="text-gray-600 dark:text-gray-400">{item.price}</div>
                     </div>
