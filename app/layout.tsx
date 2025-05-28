@@ -56,6 +56,9 @@ export default function RootLayout({
                     <Link href="/dashboard" className="text-gray-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-all duration-300 font-medium hover-lift">
                       Dashboard
                     </Link>
+                    <Link href="/settings" className="text-gray-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-all duration-300 font-medium hover-lift">
+                      Settings
+                    </Link>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -72,21 +75,71 @@ export default function RootLayout({
             </main>
 
             <footer className="w-full glass backdrop-blur-md animate-slide-up">
-              <div className="max-w-7xl mx-auto flex items-center justify-center text-center text-sm gap-8 py-8 px-6">
-                <p className="text-gray-600 dark:text-gray-400 animate-float">
-                  Made with 💕 for sisters supporting sisters
-                </p>
-                <p className="text-gray-500 dark:text-gray-500 text-xs">
-                  Powered by{" "}
-                  <a
-                    href="https://supabase.com"
-                    target="_blank"
-                    className="font-medium hover:text-pink-600 dark:hover:text-pink-400 transition-colors hover-glow"
-                    rel="noreferrer"
-                  >
-                    Supabase
-                  </a>
-                </p>
+              <div className="max-w-7xl mx-auto py-8 px-6">
+                <div className="grid md:grid-cols-4 gap-8 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-6 h-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">S</span>
+                      </div>
+                      <span className="font-bold gradient-text">SistaChat</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Your AI fashion sister who always keeps it 💯
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Product</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li><Link href="/chat" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Chat</Link></li>
+                      <li><Link href="/upload" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Upload</Link></li>
+                      <li><Link href="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Pricing</Link></li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Company</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li><Link href="/about" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">About</Link></li>
+                      <li><Link href="/contact" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Contact</Link></li>
+                      <li><Link href="/blog" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Blog</Link></li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Legal</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li><Link href="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Privacy Policy</Link></li>
+                      <li><Link href="/terms" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Terms of Service</Link></li>
+                      <li><Link href="/cookies" className="text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Cookie Policy</Link></li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div className="border-t border-pink-200/50 dark:border-purple-500/20 pt-6">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm animate-float">
+                      Made with 💕 for sisters supporting sisters
+                    </p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <p className="text-gray-500 dark:text-gray-500">
+                        © 2024 SistaChat. All rights reserved.
+                      </p>
+                      <p className="text-gray-500 dark:text-gray-500">
+                        Powered by{" "}
+                        <a
+                          href="https://supabase.com"
+                          target="_blank"
+                          className="font-medium hover:text-pink-600 dark:hover:text-pink-400 transition-colors hover-glow"
+                          rel="noreferrer"
+                        >
+                          Supabase
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </footer>
           </div>

@@ -10,41 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/utils/supabase/client";
 import { uploadOutfit } from "../actions";
 
-// Add the missing textarea component
-import { cva } from "class-variance-authority";
-import { cn } from "@/lib/utils";
-
-export const textareaVariants = cva(
-  "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        default: "",
-        error: "border-destructive focus-visible:ring-destructive",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
-
-export const Textarea = React.forwardRef<
-  HTMLTextAreaElement,
-  React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-    variant?: "default" | "error";
-  }
->(({ className, variant, ...props }, ref) => {
-  return (
-    <textarea
-      className={cn(textareaVariants({ variant }), className)}
-      ref={ref}
-      {...props}
-    />
-  );
-});
-Textarea.displayName = "Textarea";
-
 export default function UploadForm({ userId }: { userId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -143,8 +108,8 @@ export default function UploadForm({ userId }: { userId: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="outfit-image">Outfit Image</Label>
-        <div className="border-2 border-dashed border-border rounded-lg p-4">
+        <Label htmlFor="outfit-image" className="text-sm font-medium">Outfit Image</Label>
+        <div className="glass border-2 border-dashed border-pink-300 dark:border-pink-500 rounded-lg p-4 hover-lift transition-all">
           {filePreview ? (
             <div className="space-y-4">
               <div className="relative rounded-lg overflow-hidden max-h-[400px] flex items-center justify-center bg-muted">
@@ -152,34 +117,34 @@ export default function UploadForm({ userId }: { userId: string }) {
                 <img
                   src={filePreview}
                   alt="Upload preview"
-                  className="max-h-[400px] max-w-full object-contain"
+                  className="max-h-[400px] max-w-full object-contain hover-lift"
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} className="glass-pink hover-lift">
                   Remove
                 </Button>
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="glass-pink hover-lift">
                   Change
                 </Button>
               </div>
             </div>
           ) : (
             <div 
-              className="flex flex-col items-center justify-center cursor-pointer py-8"
+              className="flex flex-col items-center justify-center cursor-pointer py-12 hover:bg-pink-50/50 dark:hover:bg-pink-900/20 transition-colors rounded-lg"
               onClick={() => fileInputRef.current?.click()}
             >
-              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white flex items-center justify-center mb-4 animate-glow hover-lift">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-upload">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="17 8 12 3 7 8"></polyline>
                   <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
               </div>
-              <p className="text-muted-foreground text-sm mb-2">
-                Click to upload or drag and drop
+              <p className="text-gray-700 dark:text-gray-300 text-lg font-medium mb-2">
+                Click to upload your outfit pic! 📸
               </p>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
                 JPG, PNG or GIF (max. 5MB)
               </p>
             </div>
@@ -194,25 +159,30 @@ export default function UploadForm({ userId }: { userId: string }) {
           />
         </div>
         {uploadError && (
-          <p className="text-sm text-destructive">{uploadError}</p>
+          <p className="text-sm text-red-600 dark:text-red-400 animate-fade-in">{uploadError}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes (Optional)</Label>
+        <Label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</Label>
         <Textarea
           id="notes"
           placeholder="Add notes about this outfit, occasion, or specific questions..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
+          className="glass border-none focus:ring-2 focus:ring-pink-400"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Include details like the occasion, your concerns, or specific feedback you're looking for
         </p>
       </div>
 
-      <Button type="submit" className="w-full" disabled={isUploading || !file}>
+      <Button 
+        type="submit" 
+        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white btn-interactive hover-lift animate-glow" 
+        disabled={isUploading || !file}
+      >
         {isUploading ? "Uploading..." : "Upload Outfit"}
       </Button>
     </form>

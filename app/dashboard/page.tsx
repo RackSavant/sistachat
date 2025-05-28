@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -15,172 +14,133 @@ export default async function DashboardPage() {
     return redirect("/sign-in");
   }
 
-  // Fetch user's outfits
-  const { data: outfits, error: outfitsError } = await supabase
-    .from("outfits")
-    .select("*")
-    .order("created_at", { ascending: false });
+  // Get recent chats
+  const { data: recentChats } = await supabase
+    .from('chats')
+    .select('id, created_at, updated_at')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false })
+    .limit(3);
 
-  // Fetch user's subscription info
-  const { data: subscription, error: subscriptionError } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  // Fetch user's usage quotas
-  const currentDate = new Date();
-  const monthYearKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-  
-  const { data: usageQuota, error: usageQuotaError } = await supabase
-    .from("user_usage_quotas")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("month_year_key", monthYearKey)
-    .single();
-
-  const isPremium = subscription?.plan_id?.includes("premium");
-  
-  const planLimits = {
-    images: isPremium ? 100 : 3,
-    feedbackRequests: isPremium ? 20 : 0
-  };
+  // Get recent messages count
+  const { count: totalMessages } = await supabase
+    .from('messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
 
   return (
-    <div className="flex-1 w-full flex flex-col gap-8 p-4 md:p-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Your Dashboard</h1>
-        <Link href="/upload">
-          <Button size="lg">Upload New Outfit</Button>
-        </Link>
+    <div className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 particles">
+      <div className="mb-8 animate-slide-up">
+        <h1 className="text-3xl font-bold gradient-text mb-2">Hey babe! Ready to slay? ✨</h1>
+        <p className="text-gray-600 dark:text-gray-300">
+          Upload your outfit or start chatting with your AI fashion sister
+        </p>
       </div>
 
-      {/* Subscription Info */}
-      <div className="bg-card rounded-lg p-6 shadow-sm">
-        <h2 className="text-xl font-semibold mb-4">Your Subscription</h2>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <p className="text-lg font-medium">
-              {subscription?.plan_id ? (
-                subscription.plan_id.includes("premium") ? "Premium Plan" : "Free Tier"
-              ) : "Free Tier"}
-            </p>
-            {subscription?.current_period_end && (
-              <p className="text-sm text-muted-foreground">
-                {subscription.plan_id.includes("premium") && 
-                  `Renews ${new Date(subscription.current_period_end).toLocaleDateString()}`
-                }
-              </p>
-            )}
-          </div>
-          {!isPremium && (
-            <Link href="/pricing">
-              <Button variant="outline">Upgrade to Premium</Button>
-            </Link>
-          )}
-          {isPremium && (
-            <Link href="/settings/subscription">
-              <Button variant="outline">Manage Subscription</Button>
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Usage Stats */}
-      <div className="bg-card rounded-lg p-6 shadow-sm">
-        <h2 className="text-xl font-semibold mb-4">Monthly Usage</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <p className="text-sm text-muted-foreground mb-2">Outfits Uploaded</p>
-            <div className="flex items-center gap-2">
-              <div className="w-full bg-muted rounded-full h-2.5">
-                <div 
-                  className="bg-primary h-2.5 rounded-full" 
-                  style={{ 
-                    width: `${Math.min(100, ((usageQuota?.images_uploaded_this_period || 0) / planLimits.images) * 100)}%` 
-                  }}
-                ></div>
+      {/* Quick Actions */}
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <Card className="glass hover-lift animate-scale-in">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto animate-glow">
+                <span className="text-2xl">📸</span>
               </div>
-              <span className="text-sm font-medium whitespace-nowrap">
-                {usageQuota?.images_uploaded_this_period || 0} / {planLimits.images}
-              </span>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground mb-2">Friend Feedback Requests</p>
-            <div className="flex items-center gap-2">
-              <div className="w-full bg-muted rounded-full h-2.5">
-                <div 
-                  className="bg-primary h-2.5 rounded-full" 
-                  style={{ 
-                    width: `${Math.min(100, ((usageQuota?.feedback_flows_initiated_this_period || 0) / (planLimits.feedbackRequests || 1)) * 100)}%` 
-                  }}
-                ></div>
+              <div>
+                <h3 className="text-xl font-bold mb-2">Upload Your Outfit</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Drop that fit pic and get instant feedback from your AI sister
+                </p>
+                <Link href="/upload">
+                  <Button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white btn-interactive hover-lift animate-glow">
+                    Upload Now 📸
+                  </Button>
+                </Link>
               </div>
-              <span className="text-sm font-medium whitespace-nowrap">
-                {usageQuota?.feedback_flows_initiated_this_period || 0} / {planLimits.feedbackRequests}
-              </span>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass hover-lift animate-scale-in" style={{animationDelay: '0.1s'}}>
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto animate-glow">
+                <span className="text-2xl">💬</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-2">Start Chatting</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Ask questions about style, get outfit ideas, or just chat about fashion
+                </p>
+                <Link href="/chat">
+                  <Button className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white btn-interactive hover-lift animate-glow">
+                    Start Chat 💬
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Outfits Gallery */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Your Outfits</h2>
-        {outfitsError && (
-          <p className="text-destructive">Error loading outfits</p>
-        )}
-        
-        {outfits?.length === 0 && (
-          <div className="text-center py-12 bg-card rounded-lg border border-border">
-            <h3 className="text-xl font-medium mb-2">No outfits yet</h3>
-            <p className="text-muted-foreground mb-6">Upload your first outfit to get started</p>
-            <Link href="/upload">
-              <Button>Upload an Outfit</Button>
-            </Link>
-          </div>
-        )}
-        
-        {outfits && outfits.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {outfits.map((outfit) => (
-              <Link 
-                href={`/outfit/${outfit.id}`} 
-                key={outfit.id}
-                className="group bg-card rounded-lg overflow-hidden border border-border hover:border-primary transition-all"
-              >
-                <div className="aspect-square relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={outfit.image_url} 
-                    alt="Outfit" 
-                    className="object-cover w-full h-full"
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white text-sm">
-                        {formatDistanceToNow(new Date(outfit.created_at), { addSuffix: true })}
-                      </span>
-                      <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary-foreground">
-                        {outfit.feedback_status === 'pending_initial_ai' && 'Processing'}
-                        {outfit.feedback_status === 'initial_ai_complete' && 'AI Feedback Ready'}
-                        {outfit.feedback_status === 'awaiting_friend_feedback' && 'Awaiting Friends'}
-                        {outfit.feedback_status === 'friend_feedback_complete' && 'Feedback Complete'}
-                      </span>
+      {/* Stats & Recent Activity */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <Card className="glass hover-lift animate-fade-in">
+          <CardContent className="p-6 text-center">
+            <div className="text-3xl font-bold gradient-text mb-2">{totalMessages || 0}</div>
+            <p className="text-gray-600 dark:text-gray-300">Messages Exchanged</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass hover-lift animate-fade-in" style={{animationDelay: '0.1s'}}>
+          <CardContent className="p-6 text-center">
+            <div className="text-3xl font-bold gradient-text mb-2">{recentChats?.length || 0}</div>
+            <p className="text-gray-600 dark:text-gray-300">Active Conversations</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass hover-lift animate-fade-in" style={{animationDelay: '0.2s'}}>
+          <CardContent className="p-6 text-center">
+            <div className="text-3xl font-bold gradient-text mb-2">💅</div>
+            <p className="text-gray-600 dark:text-gray-300">Fashion Sister</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Chats */}
+      {recentChats && recentChats.length > 0 && (
+        <Card className="glass hover-lift animate-slide-up">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Recent Conversations 💭</h3>
+              <Link href="/chat" className="text-pink-600 dark:text-pink-400 hover:text-pink-500 transition-colors text-sm font-medium">
+                View All
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {recentChats.map((chat) => (
+                <div key={chat.id} className="flex items-center justify-between p-3 glass rounded-lg hover-lift">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm">👗</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Fashion Chat</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        {new Date(chat.updated_at).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
+                  <Link href="/chat">
+                    <Button variant="outline" size="sm" className="glass-pink hover-lift">
+                      Continue
+                    </Button>
+                  </Link>
                 </div>
-                <div className="p-4">
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {outfit.notes || 'No description provided'}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 } 

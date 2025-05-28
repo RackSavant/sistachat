@@ -28,7 +28,7 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/sign-up">
-              <Button size="lg" variant="outline" className="px-8 glass-pink hover-lift btn-interactive">
+              <Button size="lg" variant="outline" className="px-8 glass-pink hover-lift btn-interactive border-pink-400 text-pink-700 dark:text-pink-300">
                 Join the Sisterhood
               </Button>
             </Link>
@@ -203,7 +203,7 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/sign-up">
-              <Button size="lg" variant="outline" className="px-8 border-white text-white hover:bg-white/10 btn-interactive hover-lift">
+              <Button size="lg" variant="outline" className="px-8 border-white text-white hover:bg-white/20 btn-interactive hover-lift">
                 Join Free
               </Button>
             </Link>

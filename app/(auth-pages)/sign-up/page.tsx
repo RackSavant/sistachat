@@ -4,7 +4,6 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { SmtpMessage } from "../smtp-message";
 
 export default async function Signup(props: {
   searchParams: Promise<Message>;
@@ -12,40 +11,63 @@ export default async function Signup(props: {
   const searchParams = await props.searchParams;
   if ("message" in searchParams) {
     return (
-      <div className="w-full flex-1 flex items-center h-screen sm:max-w-md justify-center gap-2 p-4">
+      <div className="w-full text-center">
         <FormMessage message={searchParams} />
       </div>
     );
   }
 
   return (
-    <>
-      <form className="flex flex-col min-w-64 max-w-64 mx-auto">
-        <h1 className="text-2xl font-medium">Sign up</h1>
-        <p className="text-sm text text-foreground">
-          Already have an account?{" "}
-          <Link className="text-primary font-medium underline" href="/sign-in">
-            Sign in
-          </Link>
+    <div className="w-full space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold gradient-text mb-2">Join the Sisterhood! 💕</h1>
+        <p className="text-gray-600 dark:text-gray-300">
+          Get ready for honest fashion feedback
         </p>
-        <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
-          <Label htmlFor="email">Email</Label>
-          <Input name="email" placeholder="you@example.com" required />
-          <Label htmlFor="password">Password</Label>
+      </div>
+      
+      <form className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+          <Input 
+            name="email" 
+            placeholder="you@example.com" 
+            required 
+            className="glass border-none focus:ring-2 focus:ring-pink-400"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium">Password</Label>
           <Input
             type="password"
             name="password"
             placeholder="Your password"
             minLength={6}
             required
+            className="glass border-none focus:ring-2 focus:ring-pink-400"
           />
-          <SubmitButton formAction={signUpAction} pendingText="Signing up...">
-            Sign up
-          </SubmitButton>
-          <FormMessage message={searchParams} />
         </div>
+        
+        <SubmitButton 
+          formAction={signUpAction} 
+          pendingText="Signing up..."
+          className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white btn-interactive hover-lift animate-glow"
+        >
+          Sign Up
+        </SubmitButton>
+        
+        <FormMessage message={searchParams} />
       </form>
-      <SmtpMessage />
-    </>
+      
+      <div className="text-center">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          Already have an account?{" "}
+          <Link className="text-pink-600 dark:text-pink-400 font-medium hover:text-pink-500 transition-colors" href="/sign-in">
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }
