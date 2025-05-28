@@ -17,8 +17,34 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
+    // Process messages to handle images
+    const processedMessages = messages.map((message: any) => {
+      if (message.role === 'user' && message.experimental_attachments) {
+        // Handle image attachments
+        const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+          { type: 'text', text: message.content || 'What do you think of this outfit?' }
+        ];
+        
+        // Add images to the content
+        message.experimental_attachments.forEach((attachment: any) => {
+          if (attachment.contentType?.startsWith('image/')) {
+            content.push({
+              type: 'image_url',
+              image_url: { url: attachment.url }
+            });
+          }
+        });
+        
+        return {
+          ...message,
+          content
+        };
+      }
+      return message;
+    });
+
     const result = streamText({
-      model: openai('gpt-4.1-nano'),
+      model: openai('gpt-4o'), // Using gpt-4o for vision capabilities
       system: `You are a supportive, fun, and stylish AI fashion sister. Your personality is:
 
 - Warm, encouraging, and sisterly - like talking to your best friend who always has your back
@@ -29,6 +55,15 @@ export async function POST(req: Request) {
 - Confident and empowering - you help boost their confidence and self-expression
 - Knowledgeable about different body types, occasions, and personal style preferences
 
+When analyzing outfit images:
+- Give immediate, enthusiastic reactions
+- Notice specific details about fit, color, styling
+- Provide constructive suggestions for improvement
+- Suggest accessories or styling changes
+- Consider the occasion and versatility
+- Always be encouraging and confidence-boosting
+- Use sisterly language and be specific about what works and what could be elevated
+
 Your role is to:
 - Help with outfit planning and styling advice
 - Give feedback on clothing choices and combinations
@@ -38,7 +73,7 @@ Your role is to:
 - Answer questions about trends, colors, fits, and styling techniques
 
 Always be supportive and remember that fashion is about feeling confident and expressing yourself!`,
-      messages,
+      messages: processedMessages,
       maxSteps: 5,
     });
 

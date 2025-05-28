@@ -269,6 +269,10 @@ CREATE POLICY "authenticate_users_outfits_insert" ON storage.objects
 FOR INSERT TO authenticated 
 WITH CHECK (substring(name from '^outfits/([^/]+)')::uuid = auth.uid());
 
+CREATE POLICY "authenticate_users_outfits_select" ON storage.objects 
+FOR SELECT TO authenticated 
+USING (substring(name from '^outfits/([^/]+)')::uuid = auth.uid());
+
 -- Storage policies for raw images
 CREATE POLICY "authenticate_users_raw_images_update" ON storage.objects 
 FOR UPDATE TO authenticated 
@@ -278,6 +282,10 @@ CREATE POLICY "authenticate_users_raw_images_insert" ON storage.objects
 FOR INSERT TO authenticated 
 WITH CHECK (substring(name from '^raw-images/([^/]+)')::uuid = auth.uid());
 
+CREATE POLICY "authenticate_users_raw_images_select" ON storage.objects 
+FOR SELECT TO authenticated 
+USING (substring(name from '^raw-images/([^/]+)')::uuid = auth.uid());
+
 -- Storage policies for processed images
 CREATE POLICY "authenticate_users_processed_images_update" ON storage.objects 
 FOR UPDATE TO authenticated 
@@ -285,4 +293,8 @@ USING (substring(name from '^processed-images/([^/]+)')::uuid = auth.uid());
 
 CREATE POLICY "authenticate_users_processed_images_insert" ON storage.objects 
 FOR INSERT TO authenticated 
-WITH CHECK (substring(name from '^processed-images/([^/]+)')::uuid = auth.uid()); 
+WITH CHECK (substring(name from '^processed-images/([^/]+)')::uuid = auth.uid());
+
+CREATE POLICY "authenticate_users_processed_images_select" ON storage.objects 
+FOR SELECT TO authenticated 
+USING (substring(name from '^processed-images/([^/]+)')::uuid = auth.uid()); 
