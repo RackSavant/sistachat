@@ -124,18 +124,7 @@ export default function RootLayout({
                     </p>
                     <div className="flex items-center gap-4 text-sm">
                       <p className="text-gray-500 dark:text-gray-500">
-                        © 2024 SistaChat. All rights reserved.
-                      </p>
-                      <p className="text-gray-500 dark:text-gray-500">
-                        Powered by{" "}
-                        <a
-                          href="https://supabase.com"
-                          target="_blank"
-                          className="font-medium hover:text-pink-600 dark:hover:text-pink-400 transition-colors hover-glow"
-                          rel="noreferrer"
-                        >
-                          Supabase
-                        </a>
+                        © 2025 SistaChat. All rights reserved.
                       </p>
                     </div>
                   </div>

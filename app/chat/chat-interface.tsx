@@ -269,41 +269,42 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] max-w-4xl mx-auto w-full glass rounded-xl overflow-hidden animate-scale-in">
-      {/* Chat Header */}
-      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center gap-3 animate-gradient">
-        <div className="w-10 h-10 glass rounded-full flex items-center justify-center animate-glow">
-          <span className="text-lg animate-wiggle">👗</span>
-        </div>
-        <div>
-          <h2 className="font-semibold">Your AI Fashion Sister</h2>
-          <p className="text-sm opacity-90 animate-float">Always here to keep it 💯 about your style</p>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-full w-full">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
         {messages.length === 0 ? (
-          <div className="text-center py-12 animate-fade-in">
-            <div className="text-6xl mb-4">
-              <span className="animate-bounce-slow">✨</span>
-              <span className="animate-wiggle">👗</span>
-              <span className="animate-float">💅</span>
-            </div>
-            <h2 className="text-2xl font-bold mb-2 gradient-text animate-glow">
-              Hey babe! Ready for some real talk?
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto animate-slide-up">
-              Drop your outfit pics or just start chatting about your style goals! Your AI sister is here to help you serve looks ✨
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 btn-interactive hover-lift animate-glow"
-              >
-                <ImageIcon className="w-4 h-4" />
-                Upload Your Fit 📸
-              </Button>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center max-w-md animate-fade-in">
+              <div className="text-6xl mb-6">
+                <span className="animate-bounce-slow">✨</span>
+                <span className="animate-wiggle">👗</span>
+                <span className="animate-float">💅</span>
+              </div>
+              <h2 className="text-2xl font-bold gradient-text mb-4 animate-glow">
+                Hey babe! Ready for some real talk? 🔥
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+                Drop your outfit pics or just start chatting about your style goals! 
+                Your AI sister is here to help you serve looks ✨
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 btn-interactive hover-lift animate-glow"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                  Upload Your Fit 📸
+                </Button>
+                <Button
+                  variant="outline"
+                  className="glass-pink hover-lift btn-interactive"
+                  onClick={() => {
+                    setInputText("Hey girl! I need some style advice...");
+                  }}
+                >
+                  Start Chatting 💬
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
@@ -314,21 +315,19 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
             {isTyping && (
               <div className="flex justify-start animate-fade-in">
                 <div className="max-w-[80%]">
-                  <div className="flex items-center gap-2 mb-2 ml-2">
-                    <div className="w-6 h-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-glow">
-                      <span className="text-white text-xs">👗</span>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-glow">
+                      <span className="text-white text-sm">👗</span>
                     </div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Your AI Sister</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Your AI Sister is typing...</span>
                   </div>
-                  <Card className="glass shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="typing-indicator">
-                        <div className="typing-dot"></div>
-                        <div className="typing-dot"></div>
-                        <div className="typing-dot"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div className="glass p-4 rounded-2xl rounded-tl-sm shadow-lg">
+                    <div className="typing-indicator">
+                      <div className="typing-dot bg-pink-500"></div>
+                      <div className="typing-dot bg-purple-500"></div>
+                      <div className="typing-dot bg-pink-500"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -337,22 +336,22 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="glass p-4">
+      {/* Input Area - Fire Design */}
+      <div className="glass border-t border-pink-200/30 dark:border-purple-500/20 p-6">
         <div
-          className={`relative ${dragActive ? 'glass-pink border-2 border-dashed border-pink-400 animate-glow' : ''} rounded-lg`}
+          className={`relative ${dragActive ? 'glass-pink border-2 border-dashed border-pink-400 animate-glow' : ''} rounded-2xl transition-all`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
         >
-          <div className="flex gap-2">
+          <div className="flex gap-4">
             <div className="flex-1">
               <Textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Tell me about your outfit or style goals, babe... ✨"
-                className="min-h-[60px] resize-none glass border-none focus:ring-2 focus:ring-pink-400"
+                className="min-h-[80px] resize-none glass border-none focus:ring-2 focus:ring-pink-400 rounded-2xl text-base"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -361,35 +360,58 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
                 }}
               />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 variant="outline"
                 size="icon"
                 disabled={isLoading}
-                className="glass-pink hover-lift btn-interactive"
+                className="glass-pink hover-lift btn-interactive h-12 w-12"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="w-5 h-5" />
               </Button>
               <Button
                 onClick={handleSendMessage}
                 disabled={isLoading || !inputText.trim()}
                 size="icon"
-                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 btn-interactive hover-lift animate-glow"
+                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 btn-interactive hover-lift animate-glow h-12 w-12"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               </Button>
             </div>
           </div>
           
           {dragActive && (
-            <div className="absolute inset-0 flex items-center justify-center glass-pink rounded-lg animate-pulse">
+            <div className="absolute inset-0 flex items-center justify-center glass-pink rounded-2xl animate-pulse">
               <div className="text-center">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-pink-600 animate-bounce" />
-                <p className="font-medium text-pink-700 dark:text-pink-300">Drop your outfit pic here, girl! 📸</p>
+                <Upload className="w-12 h-12 mx-auto mb-3 text-pink-600 animate-bounce" />
+                <p className="font-medium text-pink-700 dark:text-pink-300 text-lg">Drop your outfit pic here, girl! 📸</p>
+                <p className="text-sm text-pink-600 dark:text-pink-400 mt-1">Let's see what you're working with!</p>
               </div>
             </div>
           )}
+        </div>
+        
+        {/* Quick Actions */}
+        <div className="flex gap-2 mt-4">
+          <button 
+            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive"
+            onClick={() => setInputText("What should I wear for a date night?")}
+          >
+            💕 Date Night
+          </button>
+          <button 
+            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive"
+            onClick={() => setInputText("Help me style this for work")}
+          >
+            💼 Work Look
+          </button>
+          <button 
+            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive"
+            onClick={() => setInputText("Is this outfit giving main character energy?")}
+          >
+            ✨ Main Character
+          </button>
         </div>
       </div>
 
@@ -407,75 +429,79 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
 function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} message-bubble ${message.isUser ? 'user' : 'ai'}`}>
-      <div className={`max-w-[80%] ${message.isUser ? 'order-2' : 'order-1'}`}>
+      <div className={`max-w-[85%] ${message.isUser ? 'order-2' : 'order-1'}`}>
         {!message.isUser && (
-          <div className="flex items-center gap-2 mb-2 ml-2 animate-slide-up">
-            <div className="w-6 h-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-glow">
-              <span className="text-white text-xs">👗</span>
+          <div className="flex items-center gap-3 mb-3 animate-slide-up">
+            <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-glow">
+              <span className="text-white text-sm">👗</span>
             </div>
             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Your AI Sister</span>
           </div>
         )}
         
-        <Card className={`${
+        <div className={`${
           message.isUser 
-            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-none animate-glow' 
-            : 'glass hover-lift'
-        } shadow-sm hover-glow`}>
-          <CardContent className="p-4">
-            {message.message_type === 'image' && message.image_url && (
-              <div className="mb-3 animate-scale-in">
-                <div className="relative w-full max-w-sm mx-auto">
-                  <Image
-                    src={message.image_url}
-                    alt="Outfit"
-                    width={300}
-                    height={400}
-                    className="rounded-lg object-cover border-2 border-white/20 hover-lift"
-                  />
-                  {message.processed_image_url && (
-                    <div className="mt-2 text-xs text-pink-200 animate-shimmer">
-                      ✨ Enhanced version available
-                    </div>
-                  )}
-                </div>
+            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl rounded-br-sm shadow-lg' 
+            : 'glass rounded-2xl rounded-tl-sm shadow-lg hover-lift'
+        } p-4 hover-glow transition-all`}>
+          {message.message_type === 'image' && message.image_url && (
+            <div className="mb-4 animate-scale-in">
+              <div className="relative w-full max-w-sm mx-auto">
+                <Image
+                  src={message.image_url}
+                  alt="Outfit"
+                  width={300}
+                  height={400}
+                  className="rounded-xl object-cover border-2 border-white/20 hover-lift transition-transform"
+                />
+                {message.processed_image_url && (
+                  <div className="mt-3 text-xs text-pink-200 animate-shimmer text-center">
+                    ✨ Enhanced version available
+                  </div>
+                )}
               </div>
-            )}
-            
-            <p className="text-sm leading-relaxed">{message.content}</p>
-            
-            {message.ai_feedback && (
-              <div className="mt-3 p-3 glass-pink rounded-lg animate-slide-up">
-                <div className="flex items-center gap-2 mb-2">
-                  <Heart className="w-4 h-4 text-pink-500 animate-pulse" />
-                  <span className="font-medium text-sm text-pink-700 dark:text-pink-300">Sister's Real Talk:</span>
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{message.ai_feedback}</p>
-              </div>
-            )}
-            
-            {message.shopping_suggestions && message.shopping_suggestions.length > 0 && (
-              <div className="mt-3 p-3 glass-purple rounded-lg animate-slide-up">
-                <div className="flex items-center gap-2 mb-2">
-                  <ShoppingBag className="w-4 h-4 text-purple-500 animate-bounce" />
-                  <span className="font-medium text-sm text-purple-700 dark:text-purple-300">Similar Vibes:</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {message.shopping_suggestions.slice(0, 4).map((item: any, index: number) => (
-                    <div key={index} className="text-xs p-2 glass rounded border border-white/40 hover-lift">
-                      <div className="font-medium text-gray-800 dark:text-gray-200">{item.name}</div>
-                      <div className="text-gray-600 dark:text-gray-400">{item.price}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div className={`text-xs mt-2 ${message.isUser ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
-              {new Date(message.created_at).toLocaleTimeString()}
             </div>
-          </CardContent>
-        </Card>
+          )}
+          
+          <p className="text-base leading-relaxed">{message.content}</p>
+          
+          {message.ai_feedback && (
+            <div className="mt-4 p-4 glass-pink rounded-xl animate-slide-up">
+              <div className="flex items-center gap-2 mb-3">
+                <Heart className="w-5 h-5 text-pink-500 animate-pulse" />
+                <span className="font-semibold text-sm text-pink-700 dark:text-pink-300">Sister's Real Talk:</span>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{message.ai_feedback}</p>
+            </div>
+          )}
+          
+          {message.shopping_suggestions && message.shopping_suggestions.length > 0 && (
+            <div className="mt-4 p-4 glass-purple rounded-xl animate-slide-up">
+              <div className="flex items-center gap-2 mb-3">
+                <ShoppingBag className="w-5 h-5 text-purple-500 animate-bounce" />
+                <span className="font-semibold text-sm text-purple-700 dark:text-purple-300">Similar Vibes:</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {message.shopping_suggestions.slice(0, 4).map((item: any, index: number) => (
+                  <div key={index} className="text-xs p-3 glass rounded-lg border border-white/40 hover-lift transition-all">
+                    <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">{item.name}</div>
+                    <div className="text-gray-600 dark:text-gray-400">{item.price}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className={`text-xs mt-3 ${message.isUser ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'} flex items-center justify-between`}>
+            <span>{new Date(message.created_at).toLocaleTimeString()}</span>
+            {message.isUser && (
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                Delivered
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
