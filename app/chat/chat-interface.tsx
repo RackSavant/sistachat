@@ -18,10 +18,32 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [uploadedImages, setUploadedImages] = useState<Array<{ url: string; file: File }>>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const supabase = createClient();
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: '/api/chat',
+    onError: (error) => {
+      console.error('🔥 Chat error:', error);
+      console.error('🔥 Chat error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        cause: error.cause
+      });
+      alert(`Chat error: ${error.message}`);
+    },
+    onFinish: (message) => {
+      console.log('✅ Chat message finished:', message);
+    },
+    onResponse: (response) => {
+      console.log('📡 Chat response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        ok: response.ok
+      });
+    },
   });
 
   const scrollToBottom = () => {
@@ -32,73 +54,243 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
     scrollToBottom();
   }, [messages]);
 
+  const compressImage = async (file: File, maxSizeKB = 2048): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new window.Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions (max 1920x1920)
+        const maxDimension = 1920;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Try different quality levels until we get under the size limit
+        const tryCompress = (quality: number) => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to compress image'));
+                return;
+              }
+              
+              const sizeKB = blob.size / 1024;
+              console.log(`🗜️ Compressed to ${sizeKB.toFixed(1)}KB with quality ${quality}`);
+              
+              if (sizeKB <= maxSizeKB || quality <= 0.1) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                // Try lower quality
+                tryCompress(Math.max(0.1, quality - 0.1));
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        
+        tryCompress(0.8);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const uploadImageToSupabase = async (file: File): Promise<string> => {
+    console.log('📤 Starting image upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      userId: user.id
+    });
+
     // The RLS policy expects: raw-images/{user_id}/filename
     // But since we're uploading to the 'raw-images' bucket, the path should just be: {user_id}/{timestamp}-{filename}
     // The policy regex '^([^/]+)' will match the user_id from the path
     const fileName = `${user.id}/${Date.now()}-${file.name}`;
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('raw-images')
-      .upload(fileName, file);
+    console.log('📂 Upload path:', fileName);
 
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
+    try {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('raw-images')
+        .upload(fileName, file);
+
+      console.log('🗂️ Upload result:', { uploadData, uploadError });
+
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('raw-images')
+        .getPublicUrl(fileName);
+
+      console.log('🌐 Generated public URL:', publicUrl);
+
+      // Test if the URL is accessible
+      try {
+        const response = await fetch(publicUrl, { method: 'HEAD' });
+        console.log('🔍 URL accessibility check:', {
+          url: publicUrl,
+          status: response.status,
+          accessible: response.ok
+        });
+      } catch (urlError) {
+        console.warn('⚠️ URL accessibility check failed:', urlError);
+      }
+
+      return publicUrl;
+    } catch (error) {
+      console.error('💥 Image upload error:', error);
+      throw error;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('raw-images')
-      .getPublicUrl(fileName);
-
-    return publicUrl;
   };
 
   const handleFileUpload = async (file: File) => {
+    console.log('🖼️ File upload started:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      isImage: file.type.startsWith('image/')
+    });
+
     if (!file.type.startsWith('image/')) {
+      console.error('❌ Invalid file type:', file.type);
       alert('Please upload an image file');
       return;
     }
 
-    setIsUploading(true);
     try {
-      const imageUrl = await uploadImageToSupabase(file);
-      setUploadedImages(prev => [...prev, { url: imageUrl, file }]);
+      // Compress image if it's large
+      let fileToUpload = file;
+      const fileSizeKB = file.size / 1024;
+      
+      if (fileSizeKB > 1024) { // If larger than 1MB, compress
+        console.log('🗜️ Compressing large image...');
+        setIsCompressing(true);
+        fileToUpload = await compressImage(file);
+        console.log('✅ Image compressed:', {
+          originalSize: `${(file.size / 1024).toFixed(1)}KB`,
+          compressedSize: `${(fileToUpload.size / 1024).toFixed(1)}KB`,
+          reduction: `${(((file.size - fileToUpload.size) / file.size) * 100).toFixed(1)}%`
+        });
+        setIsCompressing(false);
+      }
+
+      setIsUploading(true);
+      const imageUrl = await uploadImageToSupabase(fileToUpload);
+      console.log('✅ Image uploaded successfully:', imageUrl);
+      
+      const newImage = { url: imageUrl, file: fileToUpload };
+      setUploadedImages(prev => {
+        const updated = [...prev, newImage];
+        console.log('📋 Updated uploaded images:', updated);
+        return updated;
+      });
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('💥 Error uploading file:', error);
       alert('Failed to upload image. Please try again.');
     } finally {
       setIsUploading(false);
+      setIsCompressing(false);
     }
   };
 
   const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    console.log('🗑️ Removing image at index:', index);
+    setUploadedImages(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      console.log('📋 Updated uploaded images after removal:', updated);
+      return updated;
+    });
   };
 
   const handleSubmitWithImages = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!input.trim() && uploadedImages.length === 0) return;
+    console.log('🚀 Submit started:', {
+      inputText: input,
+      inputTrimmed: input.trim(),
+      uploadedImagesCount: uploadedImages.length,
+      uploadedImages: uploadedImages.map(img => ({ url: img.url, fileName: img.file.name }))
+    });
+    
+    if (!input.trim() && uploadedImages.length === 0) {
+      console.warn('⚠️ No input or images to submit');
+      return;
+    }
 
     const messageContent = input.trim() || 'What do you think of this outfit?';
+    console.log('📝 Message content:', messageContent);
     
     if (uploadedImages.length > 0) {
-      // Send message with image attachments
-      await append({
-        role: 'user',
-        content: messageContent,
-        experimental_attachments: uploadedImages.map(img => ({
-          name: img.file.name,
-          contentType: img.file.type,
-          url: img.url,
-        })),
-      });
+      console.log('🖼️ Sending message with images...');
       
-      // Clear uploaded images after sending
-      setUploadedImages([]);
+      const attachments = uploadedImages.map(img => ({
+        name: img.file.name,
+        contentType: img.file.type,
+        url: img.url,
+      }));
+
+      console.log('📎 Attachments prepared:', attachments);
+
+      try {
+                 const messageData = {
+           role: 'user' as const,
+           content: messageContent,
+           experimental_attachments: attachments,
+         };
+
+        console.log('📤 Sending message with attachments:', messageData);
+
+        // Send message with image attachments
+        await append(messageData);
+        
+        console.log('✅ Message sent successfully');
+        
+        // Clear uploaded images after sending
+        setUploadedImages([]);
+        console.log('🧹 Cleared uploaded images');
+        
+             } catch (error) {
+         console.error('💥 Error sending message with images:', error);
+         alert(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+       }
     } else {
-      // Send regular text message
-      handleSubmit(e);
+      console.log('📝 Sending text-only message...');
+      try {
+        // Send regular text message
+        handleSubmit(e);
+        console.log('✅ Text message sent successfully');
+             } catch (error) {
+         console.error('💥 Error sending text message:', error);
+         alert(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+       }
     }
   };
 
@@ -111,12 +303,14 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
     e.preventDefault();
     e.stopPropagation();
 
+    console.log('🎯 File dropped');
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileUpload(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 File input changed');
     if (e.target.files && e.target.files[0]) {
       handleFileUpload(e.target.files[0]);
     }
@@ -223,6 +417,16 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
           </div>
         )}
 
+        {/* Compression Status */}
+        {isCompressing && (
+          <div className="mb-4 p-4 glass-purple rounded-xl">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              <span className="font-medium text-purple-700 dark:text-purple-300">Compressing image...</span>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmitWithImages}>
           <div className="flex gap-4">
             <div className="flex-1">
@@ -245,10 +449,12 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
                 onClick={() => fileInputRef.current?.click()}
                 variant="outline"
                 size="icon"
-                disabled={isLoading || isUploading}
+                disabled={isLoading || isUploading || isCompressing}
                 className="glass-pink hover-lift btn-interactive h-12 w-12"
               >
-                {isUploading ? (
+                {isCompressing ? (
+                  <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                ) : isUploading ? (
                   <div className="w-5 h-5 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <Upload className="w-5 h-5" />
@@ -256,7 +462,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || isUploading || (!input.trim() && uploadedImages.length === 0)}
+                disabled={isLoading || isUploading || isCompressing || (!input.trim() && uploadedImages.length === 0)}
                 size="icon"
                 className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 btn-interactive hover-lift animate-glow h-12 w-12"
               >
