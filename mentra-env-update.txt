@@ -1,0 +1,5 @@
+Add the following line to your .env.local file:
+
+MENTRA_PACKAGE_NAME=racksavant.item.app
+
+This will ensure your webhook handler correctly validates requests from your Mentra OS app.

@@ -1,0 +1,9 @@
+version: "2"
+authtoken: 2zmweDbggR0RlAWBq1TGs8Ab6VU_4WeMNo5RTSTxMTfDjS1Dd  # Get this from https://dashboard.ngrok.com/get-started/your-authtoken
+
+tunnels:
+  mentra-app:
+    addr: 3000  # Changed to match your Mentra app's port
+    proto: http
+    # This will expose your Mentra app running on port 3000
+    # Access it at: https://your-subdomain.ngrok-free.app

@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Uncomment if Mentra OS serves the app under a subpath
+  // basePath: '/sistachat',
+  
+  // Allow ngrok and other dev origins
+  allowedDevOrigins: ['f2d5ae0bbc82.ngrok-free.app'],
+  
   images: {
     remotePatterns: [
       {

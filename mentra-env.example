@@ -1,0 +1,15 @@
+# Mentra OS Configuration
+PACKAGE_NAME=com.yourname.aifashionsister
+MENTRAOS_API_KEY=your_mentra_api_key_here
+PORT=3000
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+
+# VAPI Configuration
+VAPI_API_KEY=c10a907b-8e5c-4cf2-bd05-ac66722ffaa9
+VAPI_ASSISTANT_ID=f7dfb141-98ff-4e33-b24d-c88220fd792f
+
+# Phone number for VAPI calls (user's phone number)
+MENTRA_CALLBACK_NUMBER=+1234567890 
