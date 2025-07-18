@@ -16,14 +16,14 @@ async function createBuckets() {
   // Create a Supabase client with the service role key
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Create outfits bucket
+  // Create outfits bucket for storing outfit images and audio feedback
   try {
     const { data: outfitsBucket, error: outfitsError } = await supabase.storage.createBucket(
       'outfits',
       {
-        public: false, // Private by default
-        fileSizeLimit: 5 * 1024 * 1024, // 5MB limit
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
+        public: true, // Public for easy access from Mentra glasses
+        fileSizeLimit: 10 * 1024 * 1024, // 10MB limit
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'audio/mpeg', 'audio/mp3']
       }
     );
 
@@ -32,14 +32,36 @@ async function createBuckets() {
     } else {
       console.log('✅ Outfits bucket created or already exists');
       
-      // Note: Setting bucket policies requires using the Supabase Dashboard or SQL
-      console.log('ℹ️ For bucket policies, set them in the Supabase Dashboard:');
-      console.log('1. Go to Storage > Policies');
-      console.log('2. Create a policy for "outfits" bucket that allows users to access only their own files');
-      console.log('   Example policy: storage.foldername(1)::uuid = auth.uid()');
+      // Update bucket policies to be public
+      const { error: policyError } = await supabase.storage.from('outfits').createSignedUrl('test.txt', 60);
+      if (policyError) {
+        console.log('ℹ️ You may need to set bucket policies in the Supabase Dashboard');
+      } else {
+        console.log('✅ Outfits bucket is accessible');
+      }
     }
   } catch (err) {
-    console.error('❌ Unexpected error:', err);
+    console.error('❌ Unexpected error creating outfits bucket:', err);
+  }
+  
+  // Create raw-images bucket for storing original photos from Mentra glasses
+  try {
+    const { data: rawImagesBucket, error: rawImagesError } = await supabase.storage.createBucket(
+      'raw-images',
+      {
+        public: true, // Public for easy access from Mentra glasses
+        fileSizeLimit: 10 * 1024 * 1024, // 10MB limit
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
+      }
+    );
+
+    if (rawImagesError) {
+      console.error('❌ Error creating raw-images bucket:', rawImagesError.message);
+    } else {
+      console.log('✅ Raw-images bucket created or already exists');
+    }
+  } catch (err) {
+    console.error('❌ Unexpected error creating raw-images bucket:', err);
   }
 
   // You can add more buckets here as needed (e.g., profile pictures, etc.)

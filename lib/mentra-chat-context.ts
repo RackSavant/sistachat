@@ -1,5 +1,6 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+/**
+ * Simplified Mentra photo integration for chat using only Supabase
+ */
 
 export interface MentraPhoto {
   id: string;
@@ -8,34 +9,6 @@ export interface MentraPhoto {
   feedback?: string;
   timestamp: string;
 }
-
-interface MentraChatState {
-  photos: MentraPhoto[];
-  addPhoto: (photo: MentraPhoto) => void;
-  getLatestPhoto: () => MentraPhoto | undefined;
-  clearPhotos: () => void;
-}
-
-// Create a store to manage Mentra photos that can be accessed across components
-export const useMentraPhotos = create<MentraChatState>()(
-  persist(
-    (set, get) => ({
-      photos: [],
-      addPhoto: (photo) => set((state) => ({ 
-        photos: [photo, ...state.photos].slice(0, 20) // Keep only the last 20 photos
-      })),
-      getLatestPhoto: () => {
-        const { photos } = get();
-        return photos.length > 0 ? photos[0] : undefined;
-      },
-      clearPhotos: () => set({ photos: [] }),
-    }),
-    {
-      name: 'mentra-photos-storage',
-      storage: createJSONStorage(() => sessionStorage),
-    }
-  )
-);
 
 // Server-side function to add a photo (for webhook use)
 export async function addMentraPhotoServerSide(photo: MentraPhoto) {

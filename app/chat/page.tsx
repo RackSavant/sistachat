@@ -1,18 +1,25 @@
 import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import ChatInterface from './chat-interface';
 import ChatHistoryButton from './chat-history-button';
+import { User } from '@supabase/supabase-js';
+
+// We no longer need this component as ChatInterface now accepts null users
+// function AnonymousChatInterface() {
+//   return (
+//     <ChatInterface user={null} />
+//   );
+// }
 
 export default async function ChatPage() {
   const supabase = await createClient();
 
+  // Try to get authenticated user
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return redirect('/sign-in');
-  }
+  
+  // We'll allow access to the chat interface regardless of authentication status
 
   return (
     <div className="flex-1 w-full h-screen flex flex-col particles">
@@ -40,7 +47,8 @@ export default async function ChatPage() {
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Live Chat</span>
               </div>
-              <ChatHistoryButton user={user} />
+              {/* Only show chat history button if user is authenticated */}
+              {user && <ChatHistoryButton user={user} />}
             </div>
           </div>
         </div>
@@ -53,6 +61,20 @@ export default async function ChatPage() {
           <div className="p-6 border-b border-pink-200/30 dark:border-purple-500/20">
             <h2 className="font-bold text-lg gradient-text mb-4">Quick Actions 🚀</h2>
             <div className="space-y-3">
+              {/* Mentra Glasses Integration - New Feature */}
+              <button className="w-full bg-gradient-to-r from-pink-500/20 to-purple-600/20 p-3 rounded-lg hover-lift btn-interactive text-left group relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-gradient-to-l from-pink-500 to-purple-600 text-white text-xs px-2 py-0.5 rounded-bl-md">
+                  New
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl group-hover:animate-pulse">👓</span>
+                  <div>
+                    <p className="font-medium">Mentra Glasses</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Live outfit feedback</p>
+                  </div>
+                </div>
+              </button>
+              
               <button className="w-full glass p-3 rounded-lg hover-lift btn-interactive text-left group">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl group-hover:animate-bounce">📸</span>

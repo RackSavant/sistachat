@@ -208,10 +208,63 @@ class AIFashionSisterGlassesApp extends AppServer {
   }
 
   /**
-   * Get AI fashion advice using VAPI assistant (without making a phone call)
+   * Get AI fashion advice using VAPI assistant
    */
   private async getAIFashionAdvice(imageUrl: string): Promise<string> {
-    // Use OpenAI directly for faster response (Option B approach within Option A)
+    console.log(`🔮 Getting AI fashion advice from VAPI for image: ${imageUrl}`);
+    
+    try {
+      // Use VAPI for AI fashion advice
+      const response = await fetch('https://api.vapi.ai/assistant/query', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${VAPI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          assistantId: VAPI_ASSISTANT_ID,
+          inputs: [
+            {
+              name: 'imageUrl',
+              value: imageUrl
+            },
+            {
+              name: 'context',
+              value: 'Photo taken with Mentra OS smart glasses - give immediate styling feedback!'
+            }
+          ],
+          responseFormat: 'text'
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ VAPI API error: ${response.status} ${errorText}`);
+        // Fall back to OpenAI if VAPI fails
+        return this.getOpenAIFashionAdvice(imageUrl);
+      }
+
+      const data = await response.json();
+      console.log('✅ VAPI response received:', {
+        hasResponse: !!data.response,
+        responseLength: data.response?.length || 0,
+        responsePreview: data.response?.substring(0, 100) + '...'
+      });
+      
+      return data.response || 'You look amazing, babe! Keep being fabulous!';
+    } catch (error) {
+      console.error('❌ Error using VAPI for fashion advice:', error);
+      // Fall back to OpenAI if VAPI fails
+      return this.getOpenAIFashionAdvice(imageUrl);
+    }
+  }
+  
+  /**
+   * Fallback method to get fashion advice using OpenAI directly
+   */
+  private async getOpenAIFashionAdvice(imageUrl: string): Promise<string> {
+    console.log('⚠️ Falling back to OpenAI for fashion advice');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

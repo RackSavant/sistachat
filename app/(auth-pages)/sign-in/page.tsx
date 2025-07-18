@@ -4,8 +4,13 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function Login(props: { searchParams: Promise<Message> }) {
+  // Redirect directly to chat page, bypassing sign-in requirement
+  redirect('/chat');
+  
+  // The code below won't execute due to the redirect
   const searchParams = await props.searchParams;
   return (
     <div className="w-full space-y-6">

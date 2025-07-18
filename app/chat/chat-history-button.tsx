@@ -15,7 +15,7 @@ interface Chat {
 }
 
 interface ChatHistoryButtonProps {
-  user: User;
+  user: User | null;
 }
 
 export default function ChatHistoryButton({ user }: ChatHistoryButtonProps) {
@@ -27,6 +27,12 @@ export default function ChatHistoryButton({ user }: ChatHistoryButtonProps) {
   const loadChatHistory = async () => {
     setIsLoading(true);
     try {
+      // If no user is authenticated, return empty chat history
+      if (!user) {
+        setChats([]);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('chats')
         .select('*')
@@ -49,6 +55,12 @@ export default function ChatHistoryButton({ user }: ChatHistoryButtonProps) {
 
   const createNewChat = async () => {
     try {
+      // If no user is authenticated, show a message
+      if (!user) {
+        alert('Please sign in to create a new chat');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('chats')
         .insert({
@@ -67,6 +79,11 @@ export default function ChatHistoryButton({ user }: ChatHistoryButtonProps) {
     }
   };
 
+  // If no user is authenticated, don't show chat history button
+  if (!user) {
+    return null;
+  }
+  
   if (!isOpen) {
     return (
       <Button

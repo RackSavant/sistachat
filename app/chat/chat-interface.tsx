@@ -6,11 +6,22 @@ import { useChat } from '@ai-sdk/react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Send, ImageIcon, Heart, ShoppingBag, X } from 'lucide-react';
+import { Upload, Send, ImageIcon, Heart, ShoppingBag, X, Camera } from 'lucide-react';
 import Image from 'next/image';
 
+// Interface for Mentra photos from glasses
+interface MentraPhoto {
+  id: string;
+  image_url: string;
+  audio_url?: string;
+  feedback?: string;
+  timestamp: string;
+  status: string;
+  user_id: string;
+}
+
 interface ChatInterfaceProps {
-  user: User;
+  user: User | null;
 }
 
 export default function ChatInterface({ user }: ChatInterfaceProps) {
@@ -19,6 +30,8 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
   const [uploadedImages, setUploadedImages] = useState<Array<{ url: string; file: File }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [mentraPhotos, setMentraPhotos] = useState<MentraPhoto[]>([]);
+  const [lastProcessedMentraPhoto, setLastProcessedMentraPhoto] = useState<string | null>(null);
   const supabase = createClient();
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
@@ -53,6 +66,58 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Subscribe to real-time updates from Mentra glasses photos
+  useEffect(() => {
+    // Set up real-time subscription to mentra_chat_photos table
+    const channel = supabase
+      .channel('mentra-photos-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'mentra_chat_photos' },
+        async (payload) => {
+          console.log('🎯 New Mentra photo detected:', payload.new);
+          
+          const newPhoto = payload.new as MentraPhoto;
+          
+          // Avoid processing the same photo multiple times
+          if (lastProcessedMentraPhoto === newPhoto.id) {
+            return;
+          }
+          
+          // Update state with the new photo
+          setMentraPhotos(prev => [newPhoto, ...prev]);
+          setLastProcessedMentraPhoto(newPhoto.id);
+          
+          // Add the photo to the chat as a user message
+          if (newPhoto.image_url && newPhoto.feedback) {
+            // First add the user message with the photo
+            await append({
+              role: 'user',
+              content: 'Check out this outfit I just took with my Mentra glasses!',
+              experimental_attachments: [
+                { url: newPhoto.image_url }
+              ]
+            });
+            
+            // Then add the AI response with the feedback
+            await append({
+              role: 'assistant',
+              content: newPhoto.feedback
+            });
+          }
+        }
+      )
+      .subscribe();
+      
+    console.log('🔌 Subscribed to Mentra photos real-time updates');
+    
+    // Cleanup subscription when component unmounts
+    return () => {
+      supabase.removeChannel(channel);
+      console.log('🔌 Unsubscribed from Mentra photos real-time updates');
+    };
+  }, [supabase, append, lastProcessedMentraPhoto]);
 
   const compressImage = async (file: File, maxSizeKB = 2048): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -124,13 +189,14 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
-      userId: user.id
+      userId: user?.id
     });
 
     // The RLS policy expects: raw-images/{user_id}/filename
     // But since we're uploading to the 'raw-images' bucket, the path should just be: {user_id}/{timestamp}-{filename}
     // The policy regex '^([^/]+)' will match the user_id from the path
-    const fileName = `${user.id}/${Date.now()}-${file.name}`;
+    const userId = user?.id || 'anonymous';
+    const fileName = `${userId}/${Date.now()}-${file.name}`;
     
     console.log('📂 Upload path:', fileName);
 
@@ -473,10 +539,10 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
         </form>
         
         {/* Quick Actions */}
-        <div className="flex gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-4">
           <button 
             type="button"
-            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive"
+            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive flex items-center gap-1"
             onClick={() => handleInputChange({
               target: { value: "What should I wear for a date night?" }
             } as React.ChangeEvent<HTMLInputElement>)}
@@ -485,7 +551,7 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
           </button>
           <button 
             type="button"
-            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive"
+            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive flex items-center gap-1"
             onClick={() => handleInputChange({
               target: { value: "Help me style this for work" }
             } as React.ChangeEvent<HTMLInputElement>)}
@@ -494,12 +560,32 @@ export default function ChatInterface({ user }: ChatInterfaceProps) {
           </button>
           <button 
             type="button"
-            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive"
+            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive flex items-center gap-1"
             onClick={() => handleInputChange({
               target: { value: "Is this outfit giving main character energy?" }
             } as React.ChangeEvent<HTMLInputElement>)}
           >
             ✨ Main Character
+          </button>
+          <button 
+            type="button"
+            className="glass px-3 py-2 rounded-full text-sm hover-lift btn-interactive bg-gradient-to-r from-pink-500/20 to-purple-600/20 flex items-center gap-1"
+            onClick={() => {
+              append({
+                role: 'user',
+                content: 'Show me my recent Mentra glasses photos!'
+              });
+              
+              // We'll respond with info about Mentra integration
+              setTimeout(() => {
+                append({
+                  role: 'assistant',
+                  content: 'I\'m connected to your Mentra glasses! When you take photos with your glasses, they\'ll automatically appear here in our chat. Try it now by taking a photo with your Mentra glasses!'
+                });
+              }, 500);
+            }}
+          >
+            <Camera className="w-4 h-4" /> Mentra Photos
           </button>
         </div>
       </div>

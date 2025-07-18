@@ -2,7 +2,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+import { redirect } from 'next/navigation';
+
 export default function Home() {
+  // Redirect directly to chat page, bypassing sign-in requirement
+  redirect('/chat');
   return (
     <div className="flex-1 flex flex-col">
       {/* Hero Section */}

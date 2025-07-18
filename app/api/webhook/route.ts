@@ -45,8 +45,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No image data provided' }, { status: 400 });
     }
 
-    // Initialize Supabase client
+    // Initialize Supabase client with service role for storage operations
     const supabase = await createClient();
+    
+    // Create a service role client for storage operations that bypass RLS
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    if (!serviceRoleKey || !supabaseUrl) {
+      console.error('❌ Missing Supabase service role key or URL');
+      return NextResponse.json({ error: 'Server configuration missing' }, { status: 500 });
+    }
+    
+    // Create a separate client with service role permissions
+    const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+    const serviceClient = createServiceClient(supabaseUrl, serviceRoleKey);
 
     // For now, we'll use a default user ID or create a system user
     const defaultUserId = process.env.MENTRA_DEFAULT_USER_ID;
@@ -68,8 +81,8 @@ export async function POST(request: NextRequest) {
       // Generate filename
       const fileName = `${defaultUserId}/mentra-${Date.now()}.jpg`;
       
-      // Upload to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Upload to Supabase storage using service client to bypass RLS
+      const { data: uploadData, error: uploadError } = await serviceClient.storage
         .from('raw-images')
         .upload(fileName, buffer, {
           contentType: 'image/jpeg',
@@ -82,8 +95,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Get public URL using service client
+      const { data: { publicUrl } } = serviceClient.storage
         .from('raw-images')
         .getPublicUrl(fileName);
 
@@ -105,9 +118,9 @@ export async function POST(request: NextRequest) {
     const audioBuffer = await generateFashionAdviceSpeech(feedback);
     console.log('✅ Speech generated, uploading to storage...');
 
-    // Upload audio to Supabase storage
+    // Upload audio to Supabase storage using service client to bypass RLS
     const audioFileName = `${defaultUserId}/mentra-audio-${Date.now()}.mp3`;
-    const { data: audioUploadData, error: audioUploadError } = await supabase.storage
+    const { data: audioUploadData, error: audioUploadError } = await serviceClient.storage
       .from('outfits')
       .upload(audioFileName, audioBuffer, {
         contentType: 'audio/mpeg',
@@ -120,8 +133,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to upload audio' }, { status: 500 });
     }
 
-    // Get public URL for audio
-    const { data: { publicUrl: audioUrl } } = supabase.storage
+    // Get public URL for audio using service client
+    const { data: { publicUrl: audioUrl } } = serviceClient.storage
       .from('outfits')
       .getPublicUrl(audioFileName);
 
