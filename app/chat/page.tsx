@@ -62,18 +62,20 @@ export default async function ChatPage() {
             <h2 className="font-bold text-lg gradient-text mb-4">Quick Actions 🚀</h2>
             <div className="space-y-3">
               {/* Mentra Glasses Integration - New Feature */}
-              <button className="w-full bg-gradient-to-r from-pink-500/20 to-purple-600/20 p-3 rounded-lg hover-lift btn-interactive text-left group relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-gradient-to-l from-pink-500 to-purple-600 text-white text-xs px-2 py-0.5 rounded-bl-md">
-                  New
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl group-hover:animate-pulse">👓</span>
-                  <div>
-                    <p className="font-medium">Mentra Glasses</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Live outfit feedback</p>
+              <Link href="/mentra-live">
+                <button className="w-full bg-gradient-to-r from-pink-500/20 to-purple-600/20 p-3 rounded-lg hover-lift btn-interactive text-left group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 bg-gradient-to-l from-pink-500 to-purple-600 text-white text-xs px-2 py-0.5 rounded-bl-md">
+                    New
                   </div>
-                </div>
-              </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl group-hover:animate-pulse">👓</span>
+                    <div>
+                      <p className="font-medium">Mentra Glasses</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Live outfit feedback</p>
+                    </div>
+                  </div>
+                </button>
+              </Link>
               
               <button className="w-full glass p-3 rounded-lg hover-lift btn-interactive text-left group">
                 <div className="flex items-center gap-3">
