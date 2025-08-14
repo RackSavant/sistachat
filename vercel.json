@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "app/api/*/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "build": {
+    "env": {
+      "NEXT_TELEMETRY_DISABLED": "1"
+    }
+  }
+}
