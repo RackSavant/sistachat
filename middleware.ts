@@ -1,7 +1,14 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+  // Forward POST /webhook to /api/webhook so the page at /webhook can handle GET
+  if (request.method === 'POST' && request.nextUrl.pathname === '/webhook') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/api/webhook';
+    return NextResponse.rewrite(url);
+  }
+
   return await updateSession(request);
 }
 
