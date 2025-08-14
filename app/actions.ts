@@ -151,6 +151,21 @@ export async function uploadOutfit({
   try {
     const supabase = await createClient();
     
+    // Get the authenticated user from the server-side client
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return { error: 'User not authenticated' };
+    }
+    
+    // Use the authenticated user's ID instead of the client-provided userId
+    const authenticatedUserId = user.id;
+    
+    // Verify that the client-provided userId matches the authenticated user
+    if (userId !== authenticatedUserId) {
+      return { error: 'User ID mismatch - unauthorized' };
+    }
+    
     // Generate a UUID for the outfit
     const outfitId = uuidv4();
     
@@ -164,7 +179,7 @@ export async function uploadOutfit({
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('plan_id')
-      .eq('user_id', userId)
+      .eq('user_id', authenticatedUserId)
       .single();
     
     const isPremium = subscription?.plan_id?.includes('premium');
@@ -174,7 +189,7 @@ export async function uploadOutfit({
     const { data: existingQuota } = await supabase
       .from('user_usage_quotas')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', authenticatedUserId)
       .eq('month_year_key', monthYearKey)
       .single();
     
@@ -184,7 +199,7 @@ export async function uploadOutfit({
       const periodEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       
       await supabase.from('user_usage_quotas').insert({
-        user_id: userId,
+        user_id: authenticatedUserId,
         month_year_key: monthYearKey,
         images_uploaded_this_period: 0,
         feedback_flows_initiated_this_period: 0,
@@ -198,10 +213,10 @@ export async function uploadOutfit({
       return { error: 'Monthly upload limit reached' };
     }
     
-    // Insert outfit record
+    // Insert outfit record using the authenticated user's ID
     const { error: outfitError } = await supabase.from('outfits').insert({
       id: outfitId,
-      user_id: userId,
+      user_id: authenticatedUserId, // Use authenticated user ID
       image_url: imageUrl,
       storage_object_path: storagePath,
       notes,
@@ -214,7 +229,7 @@ export async function uploadOutfit({
     
     // Increment usage count
     await supabase.rpc('increment_uploads', {
-      p_user_id: userId,
+      p_user_id: authenticatedUserId,
       p_month_year_key: monthYearKey
     });
     
