@@ -8,6 +8,8 @@ import Link from "next/link";
 import FeedbackRequestButton from "./feedback-request-button";
 import FeedbackThreads from "./feedback-threads";
 import AIFeedbackSection from './ai-feedback-section';
+import { CheckCircle } from 'lucide-react';
+import { TokenizeButton } from './tokenize-button';
 
 export const generateMetadata = async ({
   params,
@@ -27,6 +29,9 @@ interface Outfit {
   image_url: string;
   notes?: string;
   feedback_status: string;
+  is_tokenized?: boolean;
+  token_metadata_uri?: string;
+  tokenized_at?: string;
   initial_ai_analysis?: {
     description: string;
     items: string[];
@@ -78,6 +83,12 @@ export default async function OutfitPage({
               alt="Your outfit"
               className="object-cover w-full h-full"
             />
+            {outfit.is_tokenized && (
+              <div className="absolute bottom-4 right-4 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                <span>Tokenized</span>
+              </div>
+            )}
           </div>
           
           {outfit.notes && (
@@ -87,8 +98,40 @@ export default async function OutfitPage({
             </div>
           )}
           
-          <div className="text-sm text-gray-500">
-            Uploaded on {new Date(outfit.created_at).toLocaleDateString()}
+          <div className="space-y-4">
+            <div className="text-sm text-gray-500">
+              Uploaded on {new Date(outfit.created_at).toLocaleDateString()}
+            </div>
+            
+            {outfit.is_tokenized && outfit.tokenized_at && (
+              <div className="text-sm text-gray-500">
+                Tokenized on {new Date(outfit.tokenized_at).toLocaleDateString()}
+              </div>
+            )}
+            
+            {outfit.token_metadata_uri && (
+              <div className="text-sm">
+                <a 
+                  href={outfit.token_metadata_uri} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-pink-600 hover:underline"
+                >
+                  View on Solana Explorer
+                </a>
+              </div>
+            )}
+            
+            {!outfit.is_tokenized && (
+              <div className="pt-4">
+                <TokenizeButton 
+                  outfitId={outfit.id}
+                  imageUrl={outfit.image_url}
+                  notes={outfit.notes}
+                  userId={user.id}
+                />
+              </div>
+            )}
           </div>
         </div>
         

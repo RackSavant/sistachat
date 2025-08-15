@@ -45,9 +45,9 @@ export async function POST(req: Request) {
       } : null
     });
     
+    // Allow anonymous users to chat; just proceed without a user context
     if (userError || !user) {
-      console.error('❌ Authentication failed:', userError);
-      return new Response('Unauthorized', { status: 401 });
+      console.warn('⚠️ Proceeding without authenticated user. Anonymous chat session.');
     }
 
     console.log('🔄 Processing messages...');

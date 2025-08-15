@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/utils/supabase/client";
 import { uploadOutfit } from "../actions";
 import MultiPhotoUpload from "@/components/ui/multi-photo-upload";
@@ -28,6 +29,7 @@ export default function UploadForm({ userId }: { userId: string }) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [completedOutfitIds, setCompletedOutfitIds] = useState<string[]>([]);
+  const [shouldTokenize, setShouldTokenize] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -143,6 +145,21 @@ export default function UploadForm({ userId }: { userId: string }) {
             <Sparkles className="w-4 h-4 mr-2" />
             View {completedOutfitIds.length === 1 ? 'Outfit' : 'Outfits'}
           </Button>
+          {shouldTokenize && (
+            <Button 
+              onClick={() => {
+                if (completedOutfitIds.length === 1) {
+                  router.push(`/outfit/${completedOutfitIds[0]}?tokenize=1`);
+                } else {
+                  router.push('/settings/solana');
+                }
+              }}
+              variant="outline"
+              className="glass-pink hover-lift"
+            >
+              Tokenize On-Chain
+            </Button>
+          )}
           <Button 
             onClick={resetForm}
             variant="outline"
@@ -210,6 +227,23 @@ export default function UploadForm({ userId }: { userId: string }) {
         </p>
       </div>
 
+      {/* Tokenize Choice (shown after at least one file selected) */}
+      {uploadedFiles.length > 0 && (
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200/60 dark:border-purple-800/40">
+          <Checkbox
+            id="tokenize"
+            checked={shouldTokenize}
+            onCheckedChange={(v) => setShouldTokenize(!!v)}
+          />
+          <div className="space-y-1">
+            <Label htmlFor="tokenize" className="text-sm font-medium">Also tokenize on-chain after upload?</Label>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              If checked, you'll be prompted to mint an NFT for your uploaded item using your connected Solana wallet.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Submit Button */}
       <Button 
         type="submit" 
@@ -221,7 +255,7 @@ export default function UploadForm({ userId }: { userId: string }) {
         disabled={isProcessing || uploadedFiles.filter(f => f.status === 'success').length === 0}
       >
         {isProcessing 
-          ? "Generating..." 
+          ? (shouldTokenize ? "Uploading & Preparing Tokenization..." : "Generating...") 
           : uploadError && !uploadError.includes('Failed to create outfit records')
             ? "Upload Again!" 
             : `Create ${uploadedFiles.filter(f => f.status === 'success').length} Outfit${uploadedFiles.filter(f => f.status === 'success').length !== 1 ? 's' : ''}`

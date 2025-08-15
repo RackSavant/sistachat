@@ -6,7 +6,8 @@ import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import Link from "next/link";
-import { WalletContextProvider } from "@/components/WalletContextProvider";
+import { WalletContextProvider } from "@/components/solana/WalletContextProvider";
+import { UmiProvider } from "@/lib/umi";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -33,12 +34,13 @@ export default function RootLayout({
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <body className="bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900 text-foreground particles animate-gradient">
         <WalletContextProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
+          <UmiProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+              disableTransitionOnChange
+            >
           <div className="min-h-screen flex flex-col relative">
             <nav className="w-full glass backdrop-blur-md sticky top-0 z-50 animate-slide-up">
               <div className="w-full max-w-7xl mx-auto flex justify-between items-center p-4 px-6">
@@ -134,7 +136,8 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
-          </ThemeProvider>
+            </ThemeProvider>
+          </UmiProvider>
         </WalletContextProvider>
       </body>
     </html>
